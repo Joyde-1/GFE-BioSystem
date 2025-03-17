@@ -1,0 +1,26 @@
+# Data paths
+path: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear
+
+train: train
+val: val
+test: test
+
+# train:
+#   images: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/train/images
+#   labels: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/train/bounding_boxes
+
+# val:
+#   images: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/val/images
+#   labels: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/val/bounding_boxes
+
+# test:
+#   images: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/test/images
+#   labels: /Users/giovanni/Desktop/Autenticazione Biometrica per la Sicurezza dei Sistemi Informatici/Progetto/splitted database/ear/test/bounding_boxes
+
+# Number of classes
+nc: 1
+
+# Classes names
+# names: ['ear']
+names: 
+  0: 'ear'
