@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-from multimodal.utils import load_config, browse_path, path_extractor, save_image
+from face_utils import load_config, browse_path, path_extractor, save_image
 from pre_processing.prepare_data import PrepareData
 from pre_processing.pre_processing import PreProcessing
 from detection.viola_jones import ViolaJones
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
         pre_processed_face_image = pre_processing.pre_processing_image(image.copy())
 
-        if face_config.save_image.pre_processed_face_image:
+        if face_config.save_image.pre_processed:
             save_image(face_config, pre_processed_face_image, image_name, "pre_processed_face_image")
 
         if face_config.face_detection.detector == 'viola-jones':
@@ -106,12 +106,12 @@ if __name__ == '__main__':
         else:
             raise ValueError("Unknown algorithm type! \n")
         
-        if face_config.save_image.detected_face_bounding_box:
+        if face_config.save_image.detected_face:
             save_image(face_config, detected_image, image_name, "detected_face_bounding_box")
 
         post_processed_face_image = post_processing.post_processing_image(pre_processed_face_image.copy(), bounding_box)
 
-        if face_config.save_image.post_processed_face_image:
+        if face_config.save_image.post_processed:
             save_image(face_config, post_processed_face_image, image_name, "post_processed_face_image")
 
         if face_config.features_extractor == 'lbp':
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         else:
             raise ValueError("Unknown algorithm type! \n")
         
-        if face_config.save_image.features_extracted_face_image:
+        if face_config.save_image.features_extracted:
             save_image(face_config, face_template_vis, image_name, f"{face_config.features_extractor}_face_image")
 
         subjects[subject]['acquisition_name'].append(image_name)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
                 fisherfaces[fisherfaces_index:fisherfaces_index + num_acquisitions]
             )
 
-            if face_config.save_image.features_extracted_face_image:
+            if face_config.save_image.features_extracted:
                 for i in range(num_acquisitions):
                     save_image(face_config, visual_fisherfaces[i + fisherfaces_index], f"{subject}_{i}", f"{face_config.features_extractor}_face_image")
 

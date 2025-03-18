@@ -20,31 +20,31 @@ except ModuleNotFoundError:
 
 
 class Yolo:
-    def __init__(self, face_config):
-        self.face_config = face_config
+    def __init__(self, ear_config):
+        self.ear_config = ear_config
         self._prepare_predict_process()
 
-    def _load_model(self, face_detection_yolo_config):
+    def _load_model(self, ear_detection_yolo_config):
         # Load model weights
-        self.model = YOLO(f"{face_detection_yolo_config.training.checkpoints_dir}/{face_detection_yolo_config.training.model_name}.pt")
+        self.model = YOLO(f"{ear_detection_yolo_config.training.checkpoints_dir}/{ear_detection_yolo_config.training.model_name}.pt")
 
     def _prepare_predict_process(self):
         # Load configuration
-        face_detection_yolo_config = load_config('yolo_detection/config/face_detection_yolo_config.yaml')
+        ear_detection_yolo_config = load_config('yolo_detection/config/ear_dx_detection_yolo_config.yaml')
 
         # Set device
-        self.device = select_device(face_detection_yolo_config)
+        self.device = select_device(ear_detection_yolo_config)
 
         # Load model
-        self._load_model(face_detection_yolo_config)
+        self._load_model(ear_detection_yolo_config)
 
-    def predict_face_bounding_box(self, image_path):
+    def predict_ear_bounding_box(self, image_path):
         # Effettua la predizione
         prediction = self.model.predict(
             source=image_path,
             conf=0.25,
             iou=0.6,
-            imgsz=self.face_config.face_detection.image_size,
+            imgsz=self.ear_config.ear_detection.image_size,
             device=self.device,
             retina_masks=False,
             # Visualization params:
@@ -69,9 +69,9 @@ class Yolo:
         # print("PRED BOXES XYWH:", prediction[0].boxes.xywh, "\n\n")
         # print("PRED BOXES XYWHN:", prediction[0].boxes.xywhn, "\n\n")
 
-        if self.face_config.show_images.detected_face_bounding_box:
-            cv2.imshow("Predicted face bounding box image", predicted_image)
-            cv2.moveWindow("Predicted face bounding box image", 0, 0)
+        if self.ear_config.show_images.detected_ear_bounding_box:
+            cv2.imshow("Predicted ear bounding box image", predicted_image)
+            cv2.moveWindow("Predicted ear bounding box image", 0, 0)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
