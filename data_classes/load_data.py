@@ -5,7 +5,7 @@ import os
 
 class LoadData:
 
-    def __init__(self, config, biometric_trait):
+    def __init__(self, _config, biometric_trait):
         """
         Initializes the PrepareData instance
 
@@ -15,11 +15,11 @@ class LoadData:
             The path to the base directory containing database
         """
         
-        self.config = config
+        self._config = _config
         self.biometric_trait = biometric_trait
     
     # Funzione per caricare le immagini
-    def load_face_images(self):
+    def load_images(self):
         
         images = []
 
@@ -27,7 +27,7 @@ class LoadData:
 
         image_paths = []
             
-        path = os.path.join(self.config.data_dir, self.biometric_trait)
+        path = os.path.join(self._config.data_dir, self.biometric_trait)
 
         if not os.path.exists(path):
             raise FileNotFoundError(f"Directory {path} not found.")

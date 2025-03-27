@@ -1,83 +1,55 @@
 import sys
-import numpy as np
+import os
 
-from face_utils import load_config, browse_path, path_extractor, save_image
-from pre_processing.prepare_data import PrepareData
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from data_classes.load_data import LoadData
 from pre_processing.pre_processing import PreProcessing
-from detection.viola_jones import ViolaJones
-from detection.yolo import Yolo
-from detection.cnn import CNN
+from yolo_detection.yolo_detection import Yolo
 from post_processing.post_processing import PostProcessing
-from features_extraction.lbp import LBP
-from features_extraction.gabor_wavelet import GaborWavelet
-from features_extraction.features_scaling import FeaturesScaling
-from features_extraction.fisherfaces import FisherFaceExtractor
-from face.matching.face_matching import MatchingFace
+from features_extraction_classes.lbp import LBP
+from features_extraction_classes.gabor_wavelet import GaborWavelet
+from features_extraction_classes.fisherfaces import FisherFaceExtractor
+from matching_class.matching import Matching
+from utils import load_config, browse_path, path_extractor, save_image, load_checkpoint, save_checkpoint
 
-
-def load_checkpoint(file_path='checkpoint_face.json'):
-    import os
-    import json
-
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            checkpoint = json.load(f)
-        return checkpoint
-    else:
-        return None
-
-def save_checkpoint(current_index, file_path='checkpoint_face.json'):
-    import json
-
-    checkpoint = {
-        'current_index': current_index
-    }
-    with open(file_path, 'w') as f:
-        json.dump(checkpoint, f)  
 
 
 if __name__ == '__main__':
-    face_config = load_config('face/config/face_config.yaml')
+    face_config = load_config('config/face_config.yaml')
 
     if face_config.browse_path:
         face_config.data_dir = browse_path('Select the database folder')
         face_config.save_path = browse_path('Select the folder where images and plots will be saved')
 
-        if face_config.algorithm_type == 'CNN':
+        if face_config.detector == 'CNN':
             face_config.cnn.checkpoints_dir = browse_path('Select the folder that contains model checkpoint')
-        if face_config.algorithm_type == 'yolo':
+        if face_config.detector == 'yolo':
             face_config.yolo.checkpoints_dir = browse_path('Select the folder that contains model checkpoint')
 
-        if face_config.save_groundtruths:
-            face_config.groundtruths_path = browse_path('Select the folder where groundtruths will be saved')
-
-    images_data = PrepareData(face_config)
-    images, image_names, image_paths = images_data.load_face_images()
+    images_data = LoadData(face_config, 'face')
+    images, image_names, image_paths = images_data.load_images()
 
     pre_processing = PreProcessing(face_config)
 
-    yolo = Yolo(face_config)
-    cnn = CNN(face_config)
-    viola_jones = ViolaJones(face_config)
+    yolo = Yolo(face_config, 'face')
 
     post_processing = PostProcessing(face_config)
 
     lbp = LBP(face_config)
     gabor_wavelet = GaborWavelet(face_config)
 
-
-    checkpoint = load_checkpoint()
-    start_index = checkpoint['current_index'] if checkpoint else 0
+    if face_config.use_checkpoint:
+        checkpoint = load_checkpoint('checkpoint_face.json')
+        start_index = checkpoint['current_index'] if checkpoint else 0
 
     subjects = {}
 
-    for current_index, (image, image_name, image_path) in enumerate(zip(images, image_names, image_paths)):
-        # if image_name != "3_1" and image_name != "3_2" and image_name != "3_3" and image_name != "3_4" and image_name != "3_5":
-        # if image_name != "3_3":
-        #     continue
+    max_width = 0
+    max_height = 0
 
-        # Pre-Processing and Segmentation phases with the possibility 
-        # to choose the algorithm between viola-jones, yolo or CNN
+    for current_index, (image, image_name, image_path) in enumerate(zip(images, image_names, image_paths)):
+        # Pre-Processing and Segmentation phases
         # -----------------------------------------------------------
         
         # Extract the subject number from the image name
@@ -94,25 +66,27 @@ if __name__ == '__main__':
         pre_processed_face_image = pre_processing.pre_processing_image(image.copy())
 
         if face_config.save_image.pre_processed:
-            save_image(face_config, pre_processed_face_image, image_name, "pre_processed_face_image")
+            save_image(face_config, 'face', pre_processed_face_image, image_name, 'pre_processed_face_image')
 
-        if face_config.face_detection.detector == 'viola-jones':
-            detected_image, bounding_box = viola_jones.detect_face(pre_processed_face_image.copy())
-        elif face_config.face_detection.detector == 'yolo':
-            pre_processed_face_image_path = path_extractor(face_config, image_name, "pre_processed_face_image")
-            detected_image, bounding_box = yolo.predict_face_bounding_box(pre_processed_face_image_path)
-        elif face_config.face_detection.detector == 'CNN':
-            detected_image, bounding_box = cnn.predict_face_bounding_box(pre_processed_face_image.copy())
+        if face_config.detector == 'yolo':
+            pre_processed_face_image_path = path_extractor(face_config, 'face', image_name, 'pre_processed_face_image')
+            detected_image, bounding_box = yolo.predict_bounding_box(pre_processed_face_image_path)
         else:
             raise ValueError("Unknown algorithm type! \n")
         
         if face_config.save_image.detected_face:
-            save_image(face_config, detected_image, image_name, "detected_face_bounding_box")
+            save_image(face_config, 'face', detected_image, image_name, 'detected_face_bounding_box')
 
-        post_processed_face_image = post_processing.post_processing_image(pre_processed_face_image.copy(), bounding_box)
+        post_processed_face_image, shape = post_processing.post_processing_image(pre_processed_face_image.copy(), bounding_box)
+
+        if max_width < shape[0]:
+            max_width = shape[0]
+        
+        if max_height < shape[1]:
+            max_height = shape[1]
 
         if face_config.save_image.post_processed:
-            save_image(face_config, post_processed_face_image, image_name, "post_processed_face_image")
+            save_image(face_config, 'face', post_processed_face_image, image_name, 'post_processed_face_image')
 
         if face_config.features_extractor == 'lbp':
             face_template, face_template_vis = lbp.extract_lbp_features(post_processed_face_image)
@@ -125,25 +99,30 @@ if __name__ == '__main__':
             subjects[subject]['template'].append(post_processed_face_image)       
             
             # Salva il checkpoint dopo ogni combinazione
-            save_checkpoint(current_index + 1)
+            if face_config.use_checkpoint:
+                save_checkpoint('checkpoint_face.json', current_index + 1)
 
             continue
         else:
             raise ValueError("Unknown algorithm type! \n")
         
         if face_config.save_image.features_extracted:
-            save_image(face_config, face_template_vis, image_name, f"{face_config.features_extractor}_face_image")
+            save_image(face_config, 'face', face_template_vis, image_name, f"{face_config.features_extractor}_face_image")
 
         subjects[subject]['acquisition_name'].append(image_name)
         subjects[subject]['template'].append(face_template)       
         
         # Salva il checkpoint dopo ogni combinazione
-        save_checkpoint(current_index + 1)
+        if face_config.use_checkpoint:
+            save_checkpoint('checkpoint_face.json', current_index + 1)
+
+    print("Max width: ", max_width)
+    print("Max height: ", max_height)
 
     if face_config.features_extractor == 'fisherface':
         fisherface_extractor = FisherFaceExtractor(face_config)
 
-        fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects)
+        fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, face_config.post_processing.image_size, face_config.post_processing.image_size)
 
         # Itera su subjects e assegna i templates (fisherfaces)
         fisherfaces_index = 0  # Indice per tracciare la posizione nei fisherfaces
@@ -160,12 +139,12 @@ if __name__ == '__main__':
 
             if face_config.save_image.features_extracted:
                 for i in range(num_acquisitions):
-                    save_image(face_config, visual_fisherfaces[i + fisherfaces_index], f"{subject}_{i}", f"{face_config.features_extractor}_face_image")
+                    save_image(face_config, 'face', visual_fisherfaces[i + fisherfaces_index], f"{subject}_{i}", f"{face_config.features_extractor}_face_image")
 
             # Aggiorna l'indice per il prossimo soggetto
             fisherfaces_index += num_acquisitions
     
-    matching_face = MatchingFace(face_config)
+    matching_face = Matching(face_config, 'face')
 
     far, fa, t_imp = matching_face.calculate_far(subjects)
     frr, fr, t_legit = matching_face.calculate_frr(subjects)

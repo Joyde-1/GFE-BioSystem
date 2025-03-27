@@ -1,48 +1,26 @@
 import sys
-import numpy as np
+import os
 
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_classes.load_data import LoadData
-from ear_utils import load_config, browse_path, path_extractor, save_image
 from pre_processing.pre_processing import PreProcessing
-from detection.viola_jones import ViolaJones
-from detection.yolo import Yolo
+from yolo_detection.yolo_detection import Yolo
 from post_processing.post_processing import PostProcessing
-from features_extraction.lbp import LBP
-from features_extraction.gabor_wavelet import GaborWavelet
-from features_extraction.features_scaling import FeaturesScaling
-from features_extraction.fisherfaces import FisherFaceExtractor
-from matching.ear_matching import EarMatching
+from features_extraction_classes.fisherfaces import FisherFaceExtractor
+from matching_class.matching import Matching
+from utils import load_config, browse_path, path_extractor, save_image #, load_checkpoint, save_checkpoint
 
-
-def load_checkpoint(file_path='checkpoint_ear.json'):
-    import os
-    import json
-
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            checkpoint = json.load(f)
-        return checkpoint
-    else:
-        return None
-
-def save_checkpoint(current_index, file_path='checkpoint_ear.json'):
-    import json
-
-    checkpoint = {
-        'current_index': current_index
-    }
-    with open(file_path, 'w') as f:
-        json.dump(checkpoint, f)  
 
 
 if __name__ == '__main__':
-    ear_config = load_config('ear_dx/config/ear_config.yaml')
+    ear_config = load_config('config/ear_dx_config.yaml')
 
     if ear_config.browse_path:
         ear_config.data_dir = browse_path('Select the database folder')
         ear_config.save_path = browse_path('Select the folder where images and plots will be saved')
 
-        if ear_config.algorithm_type == 'yolo':
+        if ear_config.detector == 'yolo':
             ear_config.yolo.checkpoints_dir = browse_path('Select the folder that contains model checkpoint')
 
         if ear_config.save_groundtruths:
@@ -53,27 +31,25 @@ if __name__ == '__main__':
 
     pre_processing = PreProcessing(ear_config)
 
-    yolo = Yolo(ear_config)
-    viola_jones = ViolaJones(ear_config)
+    yolo = Yolo(ear_config, 'ear_dx')
 
     post_processing = PostProcessing(ear_config)
 
-    lbp = LBP(ear_config)
-    gabor_wavelet = GaborWavelet(ear_config)
-
-
-    checkpoint = load_checkpoint()
-    start_index = checkpoint['current_index'] if checkpoint else 0
+    # checkpoint = load_checkpoint('checkpoint_ear_dx.json')
+    # start_index = checkpoint['current_index'] if checkpoint else 0
 
     subjects = {}
 
-    for current_index, (image, image_name, image_path) in enumerate(zip(images, image_names, image_paths)):
-        # if image_name != "3_1" and image_name != "3_2" and image_name != "3_3" and image_name != "3_4" and image_name != "3_5":
-        # if image_name != "3_3":
-        #     continue
+    max_width = 0
+    max_height = 0
 
-        # Pre-Processing and Segmentation phases with the possibility 
-        # to choose the algorithm between viola-jones, yolo or CNN
+    widths = []
+    heights = []
+
+    post_processed_ear_images = []
+
+    for current_index, (image, image_name, image_path) in enumerate(zip(images, image_names, image_paths)):
+        # Pre-Processing and Segmentation phases
         # -----------------------------------------------------------
         
         # Extract the subject number from the image name
@@ -90,54 +66,84 @@ if __name__ == '__main__':
         pre_processed_ear_image = pre_processing.pre_processing_image(image.copy())
 
         if ear_config.save_image.pre_processed:
-            save_image(ear_config, 'ear_dx', pre_processed_ear_image, image_name, "pre_processed_ear_dx_image")
+            save_image(ear_config, 'ear_dx', pre_processed_ear_image, image_name, 'pre_processed_ear_dx_image')
 
-        if ear_config.ear_detection.detector == 'viola-jones':
-            detected_image, bounding_box = viola_jones.detect_ear(pre_processed_ear_image.copy())
-        elif ear_config.ear_detection.detector == 'yolo':
-            pre_processed_ear_image_path = path_extractor(ear_config, 'ear_dx', image_name, "pre_processed_ear_dx_image")
-            detected_image, bounding_box = yolo.predict_ear_bounding_box(pre_processed_ear_image_path)
+        if ear_config.detector == 'yolo':
+            pre_processed_ear_image_path = path_extractor(ear_config, 'ear_dx', image_name, 'pre_processed_ear_dx_image')
+            detected_image, bounding_box = yolo.predict_bounding_box(pre_processed_ear_image_path)
         else:
             raise ValueError("Unknown algorithm type! \n")
         
         if ear_config.save_image.detected:
-            save_image(ear_config, 'ear_dx', detected_image, image_name, "detected_ear_dx_bounding_box")
+            save_image(ear_config, 'ear_dx', detected_image, image_name, 'detected_ear_dx_bounding_box')
 
-        post_processed_ear_image = post_processing.post_processing_image(pre_processed_ear_image.copy(), bounding_box)
+        post_processed_ear_image, shape = post_processing.post_processing_image(pre_processed_ear_image.copy(), bounding_box)
+
+        post_processed_ear_images.append(post_processed_ear_image)
+
+        widths.append(shape[1])
+        heights.append(shape[0])
+
+        if max_width < shape[1]:
+            max_width = shape[1]
+        
+        if max_height < shape[0]:
+            max_height = shape[0]
 
         if ear_config.save_image.post_processed:
-            save_image(ear_config, 'ear_dx', post_processed_ear_image, image_name, "post_processed_ear_dx_image")
+            save_image(ear_config, 'ear_dx', post_processed_ear_image, image_name, 'post_processed_ear_dx_image')
 
-        if ear_config.features_extractor == 'lbp':
-            ear_template, ear_template_vis = lbp.extract_lbp_features(post_processed_ear_image)
-        elif ear_config.features_extractor == 'gabor_wavelet':
-            ear_template, ear_template_vis = gabor_wavelet.extract_gabor_wavelet_features(post_processed_ear_image)
-
-            print(type(ear_template))
-        elif ear_config.features_extractor == 'fisherface':
+        if ear_config.features_extractor == 'fisherface':
             subjects[subject]['acquisition_name'].append(image_name)
             subjects[subject]['template'].append(post_processed_ear_image)       
             
             # Salva il checkpoint dopo ogni combinazione
-            save_checkpoint(current_index + 1)
-
-            continue
+            # save_checkpoint('checkpoint_ear_dx.json', current_index + 1)
         else:
             raise ValueError("Unknown algorithm type! \n")
-        
-        if ear_config.save_image.features_extracted:
-            save_image(ear_config, 'ear_dx', ear_template_vis, image_name, f"{ear_config.features_extractor}_ear_dx_image")
 
-        subjects[subject]['acquisition_name'].append(image_name)
-        subjects[subject]['template'].append(ear_template)       
-        
-        # Salva il checkpoint dopo ogni combinazione
-        save_checkpoint(current_index + 1)
+    # print("Max width: ", max_width)
+    # print("Max height: ", max_height)
+
+    # mean_width = int(statistics.mean(widths))
+    # mean_height = int(statistics.mean(heights))
+
+    # print("Max width: ", mean_width)
+    # print("Max height: ", mean_height)
+
+    # padded_ear_images = []
+
+    # for post_processed_ear_image in post_processed_ear_images:
+    #     # padded_ear_images.append(post_processing.add_padding(post_processed_ear_image, max_width, max_height))
+    #     # padded_ear_images.append(post_processing.resize_image(post_processed_ear_image, mean_width, mean_height))
+    #     padded_ear_images.append(post_processing.resize_image(post_processed_ear_image, 512, 512))
+
+    # # Itera su subjects
+    # padded_ear_images_index = 0  # Indice per tracciare la posizione nei processed ear images
+
+    # for subject in subjects.keys():
+    #     subjects[subject]['template'] = []
+
+    #     num_acquisitions = len(subjects[subject]['acquisition_name'])
+
+    #     # Aggiungi le padded images al soggetto a blocchi di num_acquisitions
+    #     subjects[subject]['template'].extend(
+    #         padded_ear_images[padded_ear_images_index:padded_ear_images_index + num_acquisitions]
+    #     )
+
+    #     if ear_config.save_image.padded:
+    #         for i in range(num_acquisitions):
+    #             save_image(ear_config, 'ear_dx', padded_ear_images[i + padded_ear_images_index], f"{subject}_{i + 1}", "padded_ear_dx_image")
+
+    #     # Aggiorna l'indice per il prossimo soggetto
+    #     padded_ear_images_index += num_acquisitions
 
     if ear_config.features_extractor == 'fisherface':
         fisherface_extractor = FisherFaceExtractor(ear_config)
 
-        fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects)
+        # fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, max_width, max_height)
+        # fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, mean_width, mean_height)
+        fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, ear_config.post_processing.image_size, ear_config.post_processing.image_size)
 
         # Itera su subjects e assegna i templates (fisherfaces)
         fisherfaces_index = 0  # Indice per tracciare la posizione nei fisherfaces
@@ -154,12 +160,12 @@ if __name__ == '__main__':
 
             if ear_config.save_image.features_extracted:
                 for i in range(num_acquisitions):
-                    save_image(ear_config, 'ear_dx', visual_fisherfaces[i + fisherfaces_index], f"{subject}_{i}", f"{ear_config.features_extractor}_ear_dx_image")
+                    save_image(ear_config, 'ear_dx', visual_fisherfaces[i + fisherfaces_index], f"{subject}_{i + 1}", f"{ear_config.features_extractor}_ear_dx_image")
 
             # Aggiorna l'indice per il prossimo soggetto
             fisherfaces_index += num_acquisitions
     
-    ear_matching = EarMatching(ear_config)
+    ear_matching = Matching(ear_config, 'ear_dx')
 
     far, fa, t_imp = ear_matching.calculate_far(subjects)
     frr, fr, t_legit = ear_matching.calculate_frr(subjects)

@@ -1,0 +1,58 @@
+# Paths
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+save_path: /Users/giovanni/Desktop/Tesi di Laurea
+results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
+predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
+
+browse_path: False
+
+# On/Off show images
+show_images:
+  pre_processed_ear_image: False
+  detected_ear_bounding_box: False
+  alignment_ear_image: False
+  post_processed_ear_image: False
+  padded_ear_image: False
+  features_extracted_ear_image: False
+
+save_image:
+  pre_processed: True
+  detected: True
+  post_processed: True
+  padded: True
+  features_extracted: True
+
+use_checkpoint: False
+
+detector: yolo
+features_extractor: fisherface
+matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
+
+pre_processing:
+  remove_background: False
+
+detection:
+  image_size: 256
+
+ear_alignment:
+  desired_left_eye: [0.35, 0.35]
+  angle_threshold: 2
+  factor: 0.9
+
+post_processing:
+  width_factor: 0.9
+  max_height_ratio: 1.25
+  min_margin_above_ear: 0.23
+  bottom_cut_ratio: 1.20
+  clahe:
+    cliplimit: 3.0 #2.0
+    tilegridsize: [8, 8] #[8, 8]
+  image_size: 256 # 224
+
+features_extraction:
+  fisherfaces:
+    scaler_type: None #'standard'
+    checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/ear_sx_lda
+
+matching:
+  threshold: 15

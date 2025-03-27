@@ -1,0 +1,69 @@
+# Paths
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+save_path: /Users/giovanni/Desktop/Tesi di Laurea
+results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
+predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
+
+browse_path: False
+
+# On/Off show images
+show_images:
+  pre_processed_face_image: False
+  detected_face_bounding_box: False
+  alignment_face_image: False
+  post_processed_face_image: False
+  features_extracted_face_image: False
+
+save_image:
+  pre_processed: True
+  detected: True
+  post_processed: True
+  features_extracted: True
+
+use_checkpoint: False
+
+detector: yolo # viola-jones # CNN
+features_extractor: fisherface # fisherface #  gabor_wavelet # lbp
+matching_algorithm: euclidean # chi-square # hamming # euclidean # cosine_similarity
+
+pre_processing:
+  remove_background: False
+
+detection:
+  image_size: 256
+
+face_alignment:
+  desired_left_eye: [0.35, 0.35]
+  angle_threshold: 2
+  factor: 0.9
+
+post_processing:
+  width_factor: 0.9
+  max_height_ratio: 1.25
+  min_margin_above_eyes: 0.23
+  bottom_cut_ratio: 1.20
+  clahe:
+    cliplimit: 3.0 #2.0
+    tilegridsize: [8, 8] #[8, 8]
+  image_size: 128 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
+
+features_extraction:
+  lbp:
+    radius: 1 #1
+    n_points: 8 #8
+    grid_x: 8 #7
+    grid_y: 8 #7
+  gabor_wavelet:
+    ksize: [15, 15] # [15, 15]    # Dimensione del kernel
+    sigma: 4.0 # 4.5        # Deviazione standard della gaussiana
+    scales: [8, 10, 12]      # Lunghezza d'onda del filtro
+    # lambd: 10.0 # 8.0       # Lunghezza d'onda del filtro
+    gamma: 0.5 # 0.5        # Aspect ratio
+    psi: 0 # 0              # Fase
+    num_orientations: 12     # Numero di orientazioni (per avere una rappresentazione completa)
+  fisherfaces:
+    scaler_type: None #'standard'
+    checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_lda
+
+matching:
+  threshold: 16
