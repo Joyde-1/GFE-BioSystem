@@ -10,14 +10,16 @@ browse_path: False
 show_images:
   pre_processed_ear_image: False
   detected_ear_bounding_box: False
-  alignment_ear_image: True
-  post_processed_ear_image: True
+  detected_ear_landmarks: False
+  alignment_ear_image: False
+  post_processed_ear_image: False
   padded_ear_image: False
   features_extracted_ear_image: False
 
 save_image:
   pre_processed: True
   detected: True
+  landmarks: True
   post_processed: True
   padded: True
   features_extracted: True
@@ -35,6 +37,7 @@ detection:
   image_size: 256
 
 ear_alignment:
+  width_epsilon_ratio: 0.05
   canny_threshold1: 50
   canny_threshold2: 150
   angle_threshold: 15 # 2
@@ -48,7 +51,7 @@ post_processing:
   clahe:
     cliplimit: 3.0 #2.0
     tilegridsize: [8, 8] #[8, 8]
-  image_size: 256 # 224
+  image_size: 32 # 224
 
 features_extraction:
   fisherfaces:

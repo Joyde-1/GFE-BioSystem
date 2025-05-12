@@ -13,10 +13,9 @@ from ultralytics import YOLO
 from tqdm import tqdm
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
-try:
-    from yolo_detection.yolo_plots import plot_prediction
-except ModuleNotFoundError:
-    from yolo_detection.yolo_plots import plot_prediction
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from yolo_detection.yolo_plots import plot_prediction
 
 
 def load_config(my_config_path):

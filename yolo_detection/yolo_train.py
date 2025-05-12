@@ -7,10 +7,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 from comet_ml import Experiment
 
 import os # For operating system interactions
+import sys
 import shutil
 
 # Local application/library specific imports
-from utils import load_config, browse_path, select_device, select_model, get_num_workers # Utility functions
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from yolo_detection.yolo_utils import load_config, browse_path, select_device, select_model, get_num_workers # Utility functions
 from yolo_detection.preprocessing_class.yolo_prepare_data import PrepareData # Data preparation class
 
 
@@ -30,7 +33,7 @@ def prepare_data(yolo_detection_config, biometric_trait):
     # Load and process training, validation and test datasets
     prepare_data.prepare_data()
 
-    print("Face images and bounding boxes processed correctly. \n\n")
+    print(f"{biometric_trait} images and bounding boxes processed correctly. \n\n")
 
 def train_model(yolo_detection_config, biometric_trait, model, device, num_workers):
     """

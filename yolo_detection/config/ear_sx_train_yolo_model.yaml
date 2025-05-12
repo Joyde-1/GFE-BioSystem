@@ -1,21 +1,21 @@
 # Data paths
-path: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx
+path: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx
 
 train: train
 val: val
 test: test
 
 # train:
-#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/train/images
-#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/train/bounding_boxes
+#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/train/images
+#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/train/bounding_boxes
 
 # val:
-#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/val/images
-#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/val/bounding_boxes
+#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/val/images
+#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/val/bounding_boxes
 
 # test:
-#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/test/images
-#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted database/ear_sx/test/bounding_boxes
+#   images: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/test/images
+#   labels: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_database/ear_sx/test/bounding_boxes
 
 # Number of classes
 nc: 1

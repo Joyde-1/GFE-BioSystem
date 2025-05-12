@@ -1,7 +1,7 @@
 # Giovanni's paths
 data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
-bounding_boxes_dir: /Users/giovanni/Desktop/Tesi di Laurea/annotations
-model_weights_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection/pre_trained_model
+bounding_boxes_dir: /Users/giovanni/Desktop/Tesi di Laurea/yolo_annotations
+model_weights_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_yolo_detection/pre_trained_model
 save_data_splitted_path: /Users/giovanni/Desktop/Tesi di Laurea
 save_path: /Users/giovanni/Desktop/Tesi di Laurea/images
 
@@ -31,7 +31,7 @@ training:
   epochs: 100
   batch_size: 8
   device: cpu #mps
-  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
+  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_yolo_detection
   min_delta: 0
   patience: 9
   start_from_epoch: 16

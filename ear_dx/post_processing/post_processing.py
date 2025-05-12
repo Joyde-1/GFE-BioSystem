@@ -16,39 +16,39 @@ class PostProcessing:
         self.ear_config = ear_config
         self.ear_alignment = EarAlignment(ear_config)
 
-    def _ear_alignment(self, image, ear_image, bounding_box):
-        return self.ear_alignment.align_ear(image.copy(), ear_image.copy(), bounding_box)
+    def _ear_alignment(self, image, bounding_box):
+        return self.ear_alignment.align_ear(image.copy(), bounding_box)
 
     def _bgr_to_gray(self, image):
         # Convert to grayscale
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    def _get_alignment_points(image):
-        """
-        Estrae i punti di allineamento (alto e basso) dai contorni dell'orecchio.
+    # def _get_alignment_points(image):
+    #     """
+    #     Estrae i punti di allineamento (alto e basso) dai contorni dell'orecchio.
         
-        Parameters:
-            image: immagine in scala di grigi
-        Returns:
-            point1, point2: punto alto e basso per allineamento
-        """
-        # Canny edge detection
-        edges = cv2.Canny(image, 50, 150)
+    #     Parameters:
+    #         image: immagine in scala di grigi
+    #     Returns:
+    #         point1, point2: punto alto e basso per allineamento
+    #     """
+    #     # Canny edge detection
+    #     edges = cv2.Canny(image, 50, 150)
 
-        # Trova contorni
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #     # Trova contorni
+    #     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if not contours:
-            raise ValueError("Nessun contorno trovato.")
+    #     if not contours:
+    #         raise ValueError("Nessun contorno trovato.")
 
-        # Prendi il contorno più grande (area massima)
-        largest_contour = max(contours, key=cv2.contourArea)
+    #     # Prendi il contorno più grande (area massima)
+    #     largest_contour = max(contours, key=cv2.contourArea)
 
-        # Trova punto più in alto (min y) e più in basso (max y)
-        top_point = tuple(largest_contour[largest_contour[:, :, 1].argmin()][0])
-        bottom_point = tuple(largest_contour[largest_contour[:, :, 1].argmax()][0])
+    #     # Trova punto più in alto (min y) e più in basso (max y)
+    #     top_point = tuple(largest_contour[largest_contour[:, :, 1].argmin()][0])
+    #     bottom_point = tuple(largest_contour[largest_contour[:, :, 1].argmax()][0])
 
-        return top_point, bottom_point
+    #     return top_point, bottom_point
     
     def _cropping_image(self, image, ear_center):
         """
@@ -208,7 +208,7 @@ class PostProcessing:
 
         bounding_box = [x_min, y_min, x_max, y_max]
         
-        # Ritaglia l'area del volto dall'immagine originale
+        # Ritaglia l'area dell'orecchio dall'immagine originale
         ear_image = image[y_min:y_max, x_min:x_max]
 
         if self.ear_config.show_images.post_processed_ear_image:
@@ -216,28 +216,28 @@ class PostProcessing:
             cv2.moveWindow("Cropped ear image", 0, 0)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
-        
-        # Converti in scala di grigi
-        image = self._bgr_to_gray(image.copy())
-        ear_image_gray = self._bgr_to_gray(ear_image)
-
-        if self.ear_config.show_images.post_processed_ear_image:
-            cv2.imshow("Gray ear image", ear_image_gray)
-            cv2.moveWindow("Gray ear image", 400, 0)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
 
         # Get alignment points
-        ear_image_aligmented, _ = self._ear_alignment(image, ear_image_gray, bounding_box)
+        ear_image_aligmented, top_point, bottom_point, outer_point, inner_point, center_point = self._ear_alignment(image.copy(), bounding_box)
 
         if self.ear_config.show_images.post_processed_ear_image:
             cv2.imshow("Alignmented ear image", ear_image_aligmented)
-            cv2.moveWindow("Alignmented ear image", 800, 0)
+            cv2.moveWindow("Alignmented ear image", 400, 0)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        
+        # Converti in scala di grigi
+        # image = self._bgr_to_gray(image.copy())
+        ear_image_gray = self._bgr_to_gray(ear_image_aligmented)
+
+        if self.ear_config.show_images.post_processed_ear_image:
+            cv2.imshow("Gray ear image", ear_image_gray)
+            cv2.moveWindow("Gray ear image", 800, 0)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
 
         # Ridimensiona l'immagine a una dimensione fissa
-        ear_image_resized = self._resize_image(ear_image_aligmented)
+        ear_image_resized = self._resize_image(ear_image_gray)
 
         if self.ear_config.show_images.post_processed_ear_image:
             cv2.imshow("Resized ear image", ear_image_resized)

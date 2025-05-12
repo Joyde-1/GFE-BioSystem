@@ -29,7 +29,7 @@ class PrepareData():
             The path to the base directory containing database
         """
         
-        self.yolo_detection_config = yolo_detection_config
+        self._yolo_detection_config = yolo_detection_config
         self.biometric_trait = biometric_trait
 
     def _get_image_names(self):
@@ -41,7 +41,7 @@ class PrepareData():
             'subjects': []
         }
 
-        images_path = os.path.join(self.yolo_detection_config.data_dir, self.biometric_trait)
+        images_path = os.path.join(self._yolo_detection_config.data_dir, self.biometric_trait)
 
         if not os.path.exists(images_path):
             raise FileNotFoundError(f"Directory {images_path} not found.")
@@ -80,8 +80,8 @@ class PrepareData():
             Returns two dictionaries, the first containing the training data and labels, and the second containing the validation data and labels.
         """
 
-        train_set_image_names, test_set_image_names, train_set_subjects, _ = train_test_split(data['image_names'], data['subjects'], test_size=self.yolo_detection_config.data.test_size, random_state=42, shuffle=True, stratify=data['subjects'])
-        train_set_image_names, val_set_image_names, _, _ = train_test_split(train_set_image_names, train_set_subjects, test_size=self.yolo_detection_config.data.val_size, random_state=42, shuffle=True, stratify=train_set_subjects)
+        train_set_image_names, test_set_image_names, train_set_subjects, _ = train_test_split(data['image_names'], data['subjects'], test_size=self._yolo_detection_config.data.test_size, random_state=42, shuffle=True, stratify=data['subjects'])
+        train_set_image_names, val_set_image_names, _, _ = train_test_split(train_set_image_names, train_set_subjects, test_size=self._yolo_detection_config.data.val_size, random_state=42, shuffle=True, stratify=train_set_subjects)
 
         return train_set_image_names, val_set_image_names, test_set_image_names
     
@@ -98,7 +98,7 @@ class PrepareData():
     def _load_and_save_images_and_bounding_boxes(self, images_path, images_file, train_set_image_names, val_set_image_names):
         # Percorsi di salvataggio
         for subset in ['train', 'val', 'test']:
-            subset_path = os.path.join(self.yolo_detection_config.save_data_splitted_path, "splitted database", self.biometric_trait, subset)
+            subset_path = os.path.join(self._yolo_detection_config.save_data_splitted_path, "splitted_yolo_database", self.biometric_trait, subset)
 
             os.makedirs(subset_path, exist_ok=True)
     
@@ -112,7 +112,7 @@ class PrepareData():
 
                 image_name = os.path.basename(os.path.splitext(image_path)[0])
 
-                bounding_box_path = os.path.join(self.yolo_detection_config.bounding_boxes_dir, self.biometric_trait, image_name + '.txt')
+                bounding_box_path = os.path.join(self._yolo_detection_config.bounding_boxes_dir, self.biometric_trait, image_name + '.txt')
 
                 # image = Image.open(image_path).convert("RGB").resize((self.image_size, self.image_size))
                 image = cv2.imread(image_path, cv2.IMREAD_COLOR)
@@ -126,7 +126,7 @@ class PrepareData():
                 # Converti da BGR (OpenCV) a RGB (Pillow)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                image = Image.fromarray(image).resize((self.yolo_detection_config.data.image_size, self.yolo_detection_config.data.image_size))
+                image = Image.fromarray(image).resize((self._yolo_detection_config.data.image_size, self._yolo_detection_config.data.image_size))
 
                 # Determina il subset (train, val, test)
                 if image_name in train_set_image_names:
@@ -137,8 +137,8 @@ class PrepareData():
                     subset = 'test'
 
                 # Salva l'immagine e la bounding box nella directory corrispondente
-                subset_image_path = os.path.join(self.yolo_detection_config.save_data_splitted_path, "splitted database", self.biometric_trait, subset, "images", f"{image_name}.bmp")
-                subset_bounding_box_path = os.path.join(self.yolo_detection_config.save_data_splitted_path, "splitted database", self.biometric_trait, subset, "labels", f"{image_name}.txt")
+                subset_image_path = os.path.join(self._yolo_detection_config.save_data_splitted_path, "splitted_yolo_database", self.biometric_trait, subset, "images", f"{image_name}.bmp")
+                subset_bounding_box_path = os.path.join(self._yolo_detection_config.save_data_splitted_path, "splitted_yolo_database", self.biometric_trait, subset, "labels", f"{image_name}.txt")
                 
                 # Salva l'immagine nella directory corrispondente
                 image.save(subset_image_path)

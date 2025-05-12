@@ -4,9 +4,13 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import os
+import sys
 from ultralytics import YOLO
 
-from utils import load_config, browse_path, select_device, evaluate_model, plot_inferences # Utility functions
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from yolo_detection.yolo_utils import load_config, browse_path, select_device, evaluate_model, plot_inferences # Utility functions
 # from plots import plot_predictions_vs_references, plot_classes_roc_curves, plot_metrics
 from yolo_detection.preprocessing_class.yolo_prepare_data import PrepareData # Data preparation class
 
@@ -27,7 +31,7 @@ def prepare_data(yolo_detection_config, biometric_trait):
     # Load and process training, validation and test datasets
     prepare_data.prepare_data()
 
-    print("Face images and bounding boxes processed correctly. \n\n")
+    print(f"{biometric_trait} images and bounding boxes processed correctly. \n\n")
 
 def load_model(yolo_detection_config):
     # Load model weights

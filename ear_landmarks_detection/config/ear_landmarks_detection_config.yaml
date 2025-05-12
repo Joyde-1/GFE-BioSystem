@@ -1,0 +1,83 @@
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+landmarks_dir: /Users/giovanni/Desktop/Tesi di Laurea/landmarks_annotations
+bounding_boxes_dir: /Users/giovanni/Desktop/Tesi di Laurea/yolo_annotations
+save_data_splitted_path: /Users/giovanni/Desktop/Tesi di Laurea
+save_path: /Users/giovanni/Desktop/Tesi di Laurea/images
+
+comet:
+  api_key: f0ogWRIW8kCHAzBzpvnkh1kbn
+  project_name: -landmarks_detection
+  workspace: Joyde-1
+
+biometric_trait: ear_dx # ear_sx
+
+browse_path: False
+
+show_image:
+  plot_data_splitting: False
+  plot_prediction: False
+  plot_reference_vs_prediction: False
+
+save_image:
+  save_loaded_image: True
+  plot_data_splitting: True
+  plot_prediction: True
+  plot_reference_vs_prediction: True
+
+data:
+  use_mean_and_std: None # None # current_database # image_net
+  image_size: 224
+  image_net:
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+  val_size: 0.25
+  test_size: 0.2
+
+training:
+  model_name: resnet18 # mobilenetv2 # resnet50 # resnet18
+  epochs: 150
+  batch_size: 8
+  scheduler_name: reduce_lr_on_plateau
+  device: mps
+  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/
+  evaluation_metric: loss
+  min_delta: 0
+  patience: 9
+  lower_is_better: True
+  initial_value_threshold: None
+  save_best_weights: True
+  start_from_epoch: 146
+  num_workers: True
+
+optimizer: 
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.999]
+    eps: 1e-08
+    weight_decay: 0
+
+scheduler:
+  reduce_lr_on_plateau:
+    factor: 0.1 
+    patience: 7
+    threshold: 0.001 
+    threshold_mode: rel
+    cooldown: 1
+    min_lr: 0.00001 
+    eps: 1e-08
+  cosine_annealing_warm_restarts:
+    t_0: 7
+    t_mult: 2
+    eta_min: 0.00001
+    last_epoch: -1
+  warm_up:
+    warmup_ratio: 0.1
+
+model:
+  input_channels: 3
+  num_filters: [16, 32]
+  kernel_size: 3
+  stride: 1
+  padding: 1
+  hidden_dim: 128
+  output_dim: 4

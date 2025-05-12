@@ -10,6 +10,7 @@ browse_path: False
 show_images:
   pre_processed_ear_image: False
   detected_ear_bounding_box: False
+  detected_ear_landmarks: True
   alignment_ear_image: False
   post_processed_ear_image: False
   padded_ear_image: False
@@ -18,6 +19,7 @@ show_images:
 save_image:
   pre_processed: True
   detected: True
+  landmarks: True
   post_processed: True
   padded: True
   features_extracted: True
