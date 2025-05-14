@@ -280,11 +280,27 @@ class EarAlignment:
             box_width = x_max_new - x_min_new
             box_height = y_max_new - y_min_new
 
+        # MODIFICA: Rendi la bounding box quadrata prendendo il lato più grande
+        max_side = max(box_width, box_height)
+        box_width = max_side
+        box_height = max_side
+
         # Calcola i nuovi limiti della bounding box con il fattore applicato
         x_min_final = max(0, x_min_new + (x_max_new - x_min_new - box_width) // 2)
         y_min_final = max(0, y_min_new + (y_max_new - y_min_new - box_height) // 2)
         x_max_final = min(self.img_w, x_min_final + box_width)
         y_max_final = min(self.img_h, y_min_final + box_height)
+
+        # Verifica se la bounding box è uscita dai limiti dell'immagine e aggiusta di conseguenza
+        if x_max_final >= self.img_w:
+            diff = x_max_final - self.img_w
+            x_min_final = max(0, x_min_final - diff)
+            x_max_final = self.img_w
+        
+        if y_max_final >= self.img_h:
+            diff = y_max_final - self.img_h
+            y_min_final = max(0, y_min_final - diff)
+            y_max_final = self.img_h
 
         # Ricalcola le coordinate di top_point e bottom_point rispetto alla nuova bounding box
         top_point_x_new = top_point[0] - x_min_final
@@ -329,15 +345,49 @@ class EarAlignment:
 
         # Calcola la matrice di rotazione basata sui landmark (estratti dall'immagine originale)
         M, angle, top_point, bottom_point, outer_point, inner_point, center_point = self._get_rotation_matrix(image.copy(), bounding_box)
-        rotated_image = cv2.warpAffine(image, M, (self.img_h, self.img_w), flags=cv2.INTER_CUBIC)
+        rotated_image = cv2.warpAffine(image, M, (self.img_w, self.img_h), flags=cv2.INTER_CUBIC)
         
         if self._ear_config.show_images.alignment_ear_image:
             cv2.imshow("Rotated image", rotated_image)
             cv2.moveWindow("Rotated image", 0, 0)
 
         # Trasforma la bounding box originale secondo la matrice ottenuta
-        # new_bbox = self._transform_bbox(bbox_abs, M, orig_w, orig_h)
         x_min_final, y_min_final, x_max_final, y_max_final, top_point_transformed, bottom_point_transformed, outer_point_transformed, inner_point_transformed, center_point_transformed = self._transform_bbox_cords(bounding_box, M, angle, top_point, bottom_point, outer_point, inner_point, center_point)
+
+        # MODIFICA: Verifica che la bounding box sia quadrata
+        width = x_max_final - x_min_final
+        height = y_max_final - y_min_final
+        
+        if width != height:
+            # Prendi il lato più grande
+            max_side = max(width, height)
+            
+            # Ricalcola i limiti per rendere la bounding box quadrata
+            center_x = (x_min_final + x_max_final) // 2
+            center_y = (y_min_final + y_max_final) // 2
+            
+            x_min_final = max(0, center_x - max_side // 2)
+            y_min_final = max(0, center_y - max_side // 2)
+            x_max_final = min(self.img_w, x_min_final + max_side)
+            y_max_final = min(self.img_h, y_min_final + max_side)
+            
+            # Verifica se la bounding box è uscita dai limiti dell'immagine e aggiusta di conseguenza
+            if x_max_final >= self.img_w:
+                diff = x_max_final - self.img_w
+                x_min_final = max(0, x_min_final - diff)
+                x_max_final = self.img_w
+            
+            if y_max_final >= self.img_h:
+                diff = y_max_final - self.img_h
+                y_min_final = max(0, y_min_final - diff)
+                y_max_final = self.img_h
+
+        test_image = rotated_image.copy()
+        cv2.rectangle(test_image, (x_min_final, y_min_final), (x_max_final, y_max_final), (0, 255, 0), 2)
+        cv2.imshow("Bounding box", test_image)
+        cv2.moveWindow("Bounding box", 0, 200)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         # Ritaglia l'orecchio allineato basandosi sulla nuova bounding box
         ear_image_alignment = rotated_image[y_min_final:y_max_final, x_min_final:x_max_final]

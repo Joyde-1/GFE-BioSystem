@@ -11,8 +11,8 @@ show_images:
   pre_processed_ear_image: False
   detected_ear_bounding_box: False
   detected_ear_landmarks: False
-  alignment_ear_image: False
-  post_processed_ear_image: False
+  alignment_ear_image: True
+  post_processed_ear_image: True
   padded_ear_image: False
   features_extracted_ear_image: False
 

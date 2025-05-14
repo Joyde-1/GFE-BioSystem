@@ -45,7 +45,7 @@ post_processing:
   clahe:
     cliplimit: 3.0 #2.0
     tilegridsize: [8, 8] #[8, 8]
-  image_size: 128 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
+  image_size: 64 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
 
 features_extraction:
   lbp:
