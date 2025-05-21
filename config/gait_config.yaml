@@ -1,5 +1,5 @@
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette/Silhouette_000-90/00001
-keypoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP-Pose/silhouette/Silhouette_000-00/00001
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette/Silhouette_000-00/00001
+keypoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP-Pose/openpose/00/00001/090_00
 save_dir: /Users/giovanni/Desktop/Tesi di Laurea/extracted_keypoits
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection

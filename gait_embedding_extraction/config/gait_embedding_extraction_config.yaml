@@ -1,0 +1,78 @@
+frames_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette
+keypoints_sequences_dir: /Users/giovanni/Desktop/Tesi di Laurea/OUMVLP-Pose/pose_sequences/openpose
+model_weights_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait_keypoints_detection/pre_trained_model
+save_data_splitted_path: /Users/giovanni/Desktop/Tesi di Laurea
+save_path: /Users/giovanni/Desktop/Tesi di Laurea/images
+
+comet:
+  api_key: f0ogWRIW8kCHAzBzpvnkh1kbn
+  project_name: gait_embedding_extraction
+  workspace: Joyde-1
+
+browse_path: False
+
+show_image:
+  plot_data_splitting: False
+  plot_prediction: False
+  plot_reference_vs_prediction: False
+
+save_image:
+  save_loaded_image: True
+  plot_data_splitting: True
+  plot_prediction: True
+  plot_reference_vs_prediction: True
+
+data:
+  val_size: 0.25
+  test_size: 0.2
+  fixed_length: None
+  scaler: standard # None # standard
+
+training:
+  model_name: resnet18 # mobilenetv2 # resnet50 # resnet18
+  epochs: 150
+  batch_size: 32
+  scheduler_name: reduce_lr_on_plateau
+  device: mps
+  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/
+  evaluation_metric: loss
+  min_delta: 0
+  patience: 9
+  lower_is_better: True
+  initial_value_threshold: None
+  save_best_weights: True
+  start_from_epoch: 146
+  num_workers: True
+
+optimizer: 
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.999]
+    eps: 1e-08
+    weight_decay: 0
+
+scheduler:
+  reduce_lr_on_plateau:
+    factor: 0.1 
+    patience: 7
+    threshold: 0.001 
+    threshold_mode: rel
+    cooldown: 1
+    min_lr: 0.00001 
+    eps: 1e-08
+  cosine_annealing_warm_restarts:
+    t_0: 7
+    t_mult: 2
+    eta_min: 0.00001
+    last_epoch: -1
+  warm_up:
+    warmup_ratio: 0.1
+
+model:
+  input_channels: 3
+  num_filters: [16, 32]
+  kernel_size: 3
+  stride: 1
+  padding: 1
+  hidden_dim: 128
+  output_dim: 4

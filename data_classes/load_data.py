@@ -61,3 +61,6 @@ class LoadData:
             image_paths.append(image_path)
             
         return images, image_names, image_paths
+    
+    def load_frames(self):
+        pass
