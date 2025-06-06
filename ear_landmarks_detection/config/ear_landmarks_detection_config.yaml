@@ -9,7 +9,7 @@ comet:
   project_name: -landmarks_detection
   workspace: Joyde-1
 
-biometric_trait: ear_dx # ear_sx
+biometric_trait: ear_sx # ear_sx
 
 browse_path: False
 

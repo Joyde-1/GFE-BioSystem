@@ -1,103 +1,110 @@
-# inference_gait.py
-
+import sys
 import os
-import cv2
-import numpy as np
-from tqdm import tqdm
-from mmengine.config import Config
-from mmpose.apis import init_model, inference_topdown
 
-def draw_keypoints(img, keypoints, radius=3, color=(0,255,0), thickness=-1):
-    """
-    Disegna ogni keypoint su img (x,y,v).
-    """
-    # for x, y, v in keypoints:
-    #     if v > 0:
-    #         cv2.circle(img, (int(x), int(y)), radius, color, thickness)
-    for keypoints in keypoints:   
-        # print("KEYPOINTS: ", keypoints)
-        if keypoints[2] > 0:
-            cv2.circle(img, (int(keypoints[0]), int(keypoints[1])), radius, color, thickness)
+# Add the parent directory to sys.path to allow imports from data_classes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from data_classes.load_data import LoadData
+from pre_processing.pre_processing import GaitPreProcessing
+from pre_processing.gait_keypoints_detection import GaitKeypointsDetection
+from yolo_pose_detection.yolo_pose_detection import YoloPose
+from features_extraction.gait_embedding_extraction import GaitEmbeddingExtraction
+from matching_classes.matching import Matching
+from utils import load_config, browse_path, save_image, path_extractor, load_checkpoint, save_checkpoint
 
-def main():
-    # --- 1) Configura paths e device ---
-    config_file     = '/Users/giovanni/Desktop/Tesi di Laurea/GFE-BioSystem/gait_keypoints_detection/config/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py'
-    checkpoint_file = '/Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait/best_coco_AP_epoch_90.pth'
-    device          = 'mps'
-
-    # directory di input / output
-    imgs_dir    = '/Users/giovanni/Desktop/Tesi di Laurea/splitted_gait_keypoints_database/test/frames/'       # es. splitted_gait_keypoints_database/test/frames
-    vis_dir     = '/Users/giovanni/Desktop/Tesi di Laurea/images/gait/keypoints_detection/'               # es. gait_inference_vis/
-    os.makedirs(vis_dir, exist_ok=True)
-
-    # --- 2) Inizializza il modello ---
-    model = init_model(
-        config_file, checkpoint_file, device=device,  
-        cfg_options=dict(device=device)  # se serve iniettare via cfg‐options
-    )
-
-    # Lista dove mettere i risultati
-    keypoints_sequence = []
-
-    # --- 3) Itera sulle immagini ---
-    for fn in tqdm(sorted(os.listdir(imgs_dir)), desc='Processing images'):
-        if not fn.lower().endswith(('.png','.jpg','.jpeg')):
-            continue
-        img_path = os.path.join(imgs_dir, fn)
-        img = cv2.imread(img_path)
-        h, w, _ = img.shape
-
-        # Top‐down: usa il bbox che copre tutta l’immagine letterbox (256×192)
-        # Se le tue immagini sono già letterbox 256×192, puoi fare:
-        bbox = np.array([[0, 0, w, h]], dtype=np.float32)
-
-        # --- 4) Inferenza ---
-        pose_results = inference_topdown(
-            model,
-            img,
-            bboxes=bbox,
-            # data_mode='topdown',
-            bbox_format='xyxy',
-            # return_heatmap=False
-        )
-        # pose_results è una lista di dict, per noi [0]['keypoints'] è Nx3
-
-        # print("POSE RESULTS: ", pose_results)
-        # print("POSE RESULTS[0]: ", pose_results[0])
-        # print("POSE RESULTS[0].pred_instances: ", pose_results[0].pred_instances)
-        # print("POSE RESULTS[0].pred_instances.keypoints: ", pose_results[0].pred_instances.keypoints)
-        # print("POSE RESULTS[0].pred_instances.keypoints: ", pose_results[0].pred_instances.keypoints[0])
-
-        # Estrai il primo (e unico) set di keypoints
-        # kps = pose_results[0]['keypoints']  # numpy array (17,3)
-        kps = pose_results[0].pred_instances.keypoints[0]  # numpy array (17,2)
-        kps_scores = pose_results[0].pred_instances.keypoint_scores[0]  # numpy array (17,1)
-
-        kp_xyv = []
-        # print("KEYPOINTS: ", kps.tolist())
-
-        for kp, kp_score in zip(kps.tolist(), kps_scores.tolist()):
-            # print(f"Keypoint: {kp}, Score: {kp_score}")
-            kp_xyv.append([kp[0], kp[1], kp_score])
-
-        keypoints_sequence.append(kp_xyv)
-        # print("KEYPOINTS SEQUENCE: ", keypoints_sequence)
-
-        # --- 5) Visualizzazione e salvataggio ---
-        vis_img = img.copy()
-        draw_keypoints(vis_img, kp_xyv, radius=4, color=(0,255,0), thickness=-1)
-        out_path = os.path.join(vis_dir, fn)
-        cv2.imwrite(out_path, vis_img)
-
-    # --- 6) Salva la sequenza di keypoint su disco ---
-    np.savez(
-        os.path.join(vis_dir, 'gait_keypoints_sequence.npz'),
-        keypoints_sequence=keypoints_sequence
-    )
-
-    print(f"Fatte inferenze su {len(keypoints_sequence)} immagini.")
-    print(f"Visualizzazioni salvate in {vis_dir}")
-    print(f"Keypoint sequence salvata in {os.path.join(vis_dir,'gait_keypoints_sequence.npz')}")
 
 if __name__ == '__main__':
-    main()
+    gait_config = load_config('config/gait_config.yaml')
+
+    if gait_config.browse_path:
+        gait_config.data_dir = browse_path('Select the database folder')
+        gait_config.save_dir = browse_path('Select the folder where images and plots will be saved')
+
+    frames_data = LoadData()
+    frame_sequences, frame_sequences_names, frame_sequences_paths = frames_data.load_frames(gait_config, 'gait')
+
+    pre_processing = GaitPreProcessing(gait_config)
+
+    gait_keypoints_detector = GaitKeypointsDetection(gait_config)
+
+    gait_yolo_pose_detector = YoloPose(gait_config, 'gait')
+
+    gait_embedding_extractor = GaitEmbeddingExtraction(gait_config)
+
+    # matching = Matching(gait_config)
+
+    if gait_config.use_checkpoint:
+        checkpoint = load_checkpoint('checkpoint_gait.json')
+        start_index = checkpoint['current_index'] if checkpoint else 0
+
+    subjects = {}
+
+    for current_index, (frame_sequence, frame_sequence_name, frame_sequence_path) in enumerate(zip(frame_sequences, frame_sequences_names, frame_sequences_paths)):
+        # Pre-Processing and Segmentation phases
+        # -----------------------------------------------------------
+        
+        # Extract the subject number from the image name
+        subject = frame_sequence_name.split('_')[0]
+
+        print("Frame sequence name:", frame_sequence_name)
+
+        if subject not in subjects:
+            subjects[subject] = {
+                'acquisition_name': [], 
+                'template': []
+            }
+
+        # print("frame_sequence:", len(frame_sequence))
+        # print("frame_sequence_path:", len(frame_sequence_path))
+        # print("subject:", subject)
+
+        pre_processed_frame_sequence = []
+
+        for i, frame in enumerate(frame_sequence):
+            # pre_processed_frame, pre_processed_frame_to_save = pre_processing.pre_processing_frame(frame.copy())
+            pre_processed_frame = pre_processing.pre_processing_frame(frame.copy())
+
+            if gait_config.save_image.pre_processed:    # TODO: da rimuovere l'if se necessariamente deve esserci l'immagine salvata
+                # save_image(gait_config, 'gait', pre_processed_frame_to_save, frame_sequence_name, 'pre_processed_frame_sequence', i + 1)
+                save_image(gait_config, 'gait', pre_processed_frame, frame_sequence_name, 'pre_processed_frame_sequence', i + 1)
+
+            pre_processed_frame_sequence.append(pre_processed_frame)
+        
+        keypoints_sequence = []
+
+        # Gait Keypoints Detection phase
+        # -----------------------------------------------------------
+        for i, pre_processed_frame in enumerate(pre_processed_frame_sequence):
+            # keypoints, frame_with_detected_keypoints = gait_keypoints_detector.detect_keypoints(pre_processed_frame)
+
+            pre_processed_frame_path = path_extractor(gait_config, 'gait', frame_sequence_name, 'pre_processed_frame_sequence', i + 1)
+            keypoints, frame_with_detected_keypoints = gait_yolo_pose_detector.predict_bounding_box(pre_processed_frame_path)
+
+            if gait_config.save_image.detected_keypoints:
+                save_image(gait_config, 'gait', frame_with_detected_keypoints, frame_sequence_name, 'detected_frame_keypoints_sequence', i + 1)
+
+            keypoints_sequence.append(keypoints)
+
+        keypoints_sequence = pre_processing.pre_processing_keypoints(keypoints_sequence)
+
+        gait_embedding = gait_embedding_extractor.extract_embedding(keypoints_sequence)
+
+        subjects[subject]['acquisition_name'].append(frame_sequence_name)
+        subjects[subject]['template'].append(gait_embedding)
+
+        # Salva il checkpoint dopo ogni combinazione
+        if gait_config.use_checkpoint:
+            save_checkpoint('checkpoint_face.json', current_index + 1)
+    
+    matching_gait = Matching(gait_config, 'gait')
+
+    far, fa, t_imp = matching_gait.calculate_far(subjects)
+    frr, fr, t_legit = matching_gait.calculate_frr(subjects)
+    accuracy = matching_gait.calculate_accuracy(t_imp, t_legit, fa, fr)
+
+    print("", "Matching face metrics:")
+    print(f"FAR: {far:.4f} %")
+    print(f"FRR: {frr:.4f} %")
+    print(f"accuracy: {accuracy:.4f} %")
+
+    matching_gait.calculate_roc_and_det(subjects)
+    matching_gait.far_vs_frr(subjects)

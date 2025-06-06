@@ -4,7 +4,8 @@ import sys
 import random
 import cv2
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error, r2_score, mean_absolute_percentage_error
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error, r2_score, mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
 from yaml_config_override import add_arguments # Custom YAML config handling
 from addict import Dict # Dictionary-like class that allows attribute access
 import yaml # YAML parsing
@@ -287,7 +288,7 @@ def evaluate(model, dataloader, criterion, device, return_test_images=False):
     else:
         return val_metrics
 
-def plot_inferences(iris_detection_config, test_images, reference_landmarks_list, prediction_landmarks_list, mean, std):
+def plot_inferences(ear_landmarks_detection_config, test_images, reference_landmarks_list, prediction_landmarks_list, mean, std):
     """
     Plotta immagini, bounding box di riferimento e bounding box predette.
 
@@ -389,6 +390,6 @@ def plot_inferences(iris_detection_config, test_images, reference_landmarks_list
         reference_image = cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB)
         prediction_image = cv2.cvtColor(prediction_image, cv2.COLOR_BGR2RGB)
 
-        plot_prediction(iris_detection_config, reference_image, prediction_image, counter)
+        plot_prediction(ear_landmarks_detection_config, reference_image, prediction_image, counter)
 
-        plot_reference_vs_prediction(iris_detection_config, test_image, counter)
+        plot_reference_vs_prediction(ear_landmarks_detection_config, test_image, counter)

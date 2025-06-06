@@ -1,159 +1,185 @@
-# configs/ear_landmark_config.py
+# td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
 
-import mmpose.visualization
+_base_ = ['/Users/giovanni/projects/openmmlab/mmpose/configs/_base_/default_runtime.py']
 
-_base_ = ['/Users/giovanni/Desktop/Tesi di Laurea/GFE-BioSystem/mmpose/configs/_base_/default_runtime.py']
+# _base_ = ['../../../_base_/default_runtime.py']
 
-visualizer = dict(type='DefaultVisualizer')
+work_dir = '/Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait_keypoints_detection'
 
 device = 'mps'
 
-# Tipo di dataset e percorso base del dataset
-dataset_type = 'COCOKeypoints'
-data_root = '/Users/giovanni/Desktop/Tesi di Laurea/splitted_gait_keypoints_database/ear_dx/'
+# runtime
+train_cfg = dict(max_epochs=100, val_interval=10)
+max_epochs = train_cfg['max_epochs']
 
-# Parametri di normalizzazione (i valori sono quelli standard di ImageNet)
-img_norm_cfg = dict(
-    mean=[123.675, 116.28, 103.53],
-    std=[58.395, 57.12, 57.375],
-    to_rgb=True
-)
+# optimizer
+optim_wrapper = dict(optimizer=dict(
+    type='Adam',
+    lr=5e-4,
+))
 
-# Pipeline di preprocessing per il training
-train_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='TopDownRandomFlip', flip_prob=0.5),
-    dict(type='TopDownAffine'),
-    dict(type='ToTensor'),
-    dict(type='Normalize', **img_norm_cfg),
+# learning policy
+param_scheduler = [
     dict(
-        type='Collect',
-        keys=['img', 'target', 'target_weight'],
-        meta_keys=['image_file', 'center', 'scale', 'rotation']
-    )
+        type='LinearLR', begin=0, end=500, start_factor=0.001,
+        by_epoch=False),  # warm-up
+    dict(
+        type='MultiStepLR',
+        begin=0,
+        end=210,
+        milestones=[170, 200],
+        gamma=0.1,
+        by_epoch=True)
 ]
 
-# Pipeline per validazione e test
-val_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='TopDownAffine'),
-    dict(type='ToTensor'),
-    dict(type='Normalize', **img_norm_cfg),
-    dict(
-        type='Collect',
-        keys=['img'],
-        meta_keys=['image_file', 'center', 'scale', 'rotation']
-    )
-]
+# automatically scaling LR based on the actual training batch size
+auto_scale_lr = dict(base_batch_size=512)
 
-data = dict(
-    samples_per_gpu=8,  # Batch size per GPU
-    workers_per_gpu=2,
-    train=dict(
-        type=dataset_type,
-        ann_file=data_root + 'train/labels/',  # File di annotazioni training
-        img_prefix=data_root + 'train/images/',                   # Cartella immagini training
-        pipeline=train_pipeline
-    ),
-    val=dict(
-        type=dataset_type,
-        ann_file=data_root + 'val/labels/',
-        img_prefix=data_root + 'val/images/',
-        pipeline=val_pipeline
-    ),
-    test=dict(
-        type=dataset_type,
-        ann_file=data_root + 'test/labels/',
-        img_prefix=data_root + 'test/images/',
-        pipeline=val_pipeline
-    )
-)
+# hooks
+# default_hooks = dict(checkpoint=dict(save_best='coco/AP', rule='greater'))
+# default_hooks = dict(checkpoint=dict(interval=max_epochs, save_last=True))
+default_hooks = dict(checkpoint=dict(interval=max_epochs, save_last=True, save_best='coco/AP', rule='greater'))
 
-# Configurazione del modello TopDown
+# codec settings
+codec = dict(
+    type='MSRAHeatmap', input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
+
+# model settings
 model = dict(
-    type='TopDown',
-    pretrained='open-mmlab://msra/hrnetv2_w32',  # Backbone pre-addestrato
+    type='TopdownPoseEstimator',
+    data_preprocessor=dict(
+        type='PoseDataPreprocessor',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        bgr_to_rgb=True),
     backbone=dict(
         type='HRNet',
         in_channels=3,
         extra=dict(
-            stage1=dict(num_modules=1, num_branches=1, block='BOTTLENECK', num_blocks=(4,), num_channels=(64,)),
-            stage2=dict(num_modules=1, num_branches=2, block='BASIC', num_blocks=(4, 4), num_channels=(32, 64)),
-            stage3=dict(num_modules=4, num_branches=3, block='BASIC', num_blocks=(4, 4, 4), num_channels=(32, 64, 128)),
-            stage4=dict(num_modules=3, num_branches=4, block='BASIC', num_blocks=(4, 4, 4, 4), num_channels=(32, 64, 128, 256))
-        )
+            stage1=dict(
+                num_modules=1,
+                num_branches=1,
+                block='BOTTLENECK',
+                num_blocks=(4, ),
+                num_channels=(64, )),
+            stage2=dict(
+                num_modules=1,
+                num_branches=2,
+                block='BASIC',
+                num_blocks=(4, 4),
+                num_channels=(32, 64)),
+            stage3=dict(
+                num_modules=4,
+                num_branches=3,
+                block='BASIC',
+                num_blocks=(4, 4, 4),
+                num_channels=(32, 64, 128)),
+            stage4=dict(
+                num_modules=3,
+                num_branches=4,
+                block='BASIC',
+                num_blocks=(4, 4, 4, 4),
+                num_channels=(32, 64, 128, 256))),
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='https://download.openmmlab.com/mmpose/'
+            'pretrain_models/hrnet_w32-36af842e.pth'),
     ),
     head=dict(
-        type='TopDownHeatmapHead',
-        in_channels=32,     # Questo valore dipende dall'output del backbone
-        out_channels=4,     # Numero di keypoint (es. top, bottom, outer, inner)
-        num_deconv_layers=0,
-        extra=dict(final_conv_kernel=1)
-    ),
-    train_cfg=dict(),
+        type='HeatmapHead',
+        in_channels=32,
+        out_channels=17,
+        deconv_out_channels=None,
+        loss=dict(type='KeypointMSELoss', use_target_weight=True),
+        decoder=codec),
     test_cfg=dict(
-        flip_test=False,
-        post_process='default',
-        shift_heatmap=False,
-        modulate_kernel=11
+        flip_test=True,
+        flip_mode='heatmap',
+        shift_heatmap=True,
+    ))
+# base dataset settings
+dataset_type = 'CocoDataset'
+data_mode = 'topdown'
+# data_root = 'data/coco/'
+data_root = '/Users/giovanni/Desktop/Tesi di Laurea/splitted_gait_keypoints_database'
+
+# pipelines
+train_pipeline = [
+    dict(type='LoadImage'),
+    dict(type='GetBBoxCenterScale'),
+    dict(type='RandomFlip', direction='horizontal'),
+    dict(type='RandomHalfBody'),
+    dict(type='RandomBBoxTransform'),
+    dict(type='TopdownAffine', input_size=codec['input_size']),
+    dict(type='GenerateTarget', encoder=codec),
+    dict(type='PackPoseInputs')
+]
+val_pipeline = [
+    dict(type='LoadImage'),
+    dict(type='GetBBoxCenterScale'),
+    dict(type='TopdownAffine', input_size=codec['input_size']),
+    dict(type='PackPoseInputs')
+]
+
+# data loaders
+train_dataloader = dict(
+    # batch_size=64,
+    batch_size=32,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=True),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_mode=data_mode,
+        # ann_file='annotations/person_keypoints_train2017.json',
+        # data_prefix=dict(img='train2017/'),
+        ann_file='train/keypoints/coco_annotations.json',
+        data_prefix=dict(img='train/frames/'),
+        pipeline=train_pipeline,
+    ))
+val_dataloader = dict(
+    batch_size=32,
+    num_workers=2,
+    persistent_workers=True,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_mode=data_mode,
+        # ann_file='annotations/person_keypoints_val2017.json',
+        # bbox_file='data/coco/person_detection_results/'
+        # 'COCO_val2017_detections_AP_H_56_person.json',
+        # data_prefix=dict(img='val2017/'),
+        ann_file='val/keypoints/coco_annotations.json',
+        data_prefix=dict(img='val/frames/'),
+        test_mode=True,
+        pipeline=val_pipeline,
+    ))
+# test_dataloader = val_dataloader
+test_dataloader = dict(
+    batch_size=32,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_mode=data_mode,
+        ann_file='test/keypoints/coco_annotations.json',
+        data_prefix=dict(img='test/frames/'),
+        pipeline=val_pipeline,
     )
 )
 
-# Configurazione dell'ottimizzatore e dello scheduler
-optimizer = dict(type='Adam', lr=5e-4)
-optimizer_config = dict(grad_clip=None)
-lr_config = dict(
-    policy='step',
-    step=[90, 120]
-)
-total_epochs = 140
+# evaluators
+val_evaluator = dict(
+    type='CocoMetric',
+    # ann_file=data_root + 'annotations/person_keypoints_val2017.json')
+        ann_file=data_root + '/val/keypoints/coco_annotations.json')
+test_evaluator = dict(
+    type='CocoMetric',
+    ann_file=data_root + '/test/keypoints/coco_annotations.json')
 
-evaluation = dict(
-    interval=10,
-    metric=['PCK'],  # Puoi usare Percentage of Correct Keypoints come metrica
-    save_best='PCK'
-)
-
-log_config = dict(
-    interval=50,
-    hooks=[
-        dict(type='TextLoggerHook')
-    ]
-)
-
-# Directory in cui salvare i checkpoint e i log
-work_dir = './work_dirs/ear_landmark'
-checkpoint_config = dict(interval=10, max_keep_ckpts=3)
-
-# ... (il resto della configurazione, incluse le definizioni di work_dir, checkpoint_config, ecc.)
-
-# Definizione dei dataloader
-train_dataloader = dict(
-    samples_per_gpu=data.get('samples_per_gpu', 8),
-    workers_per_gpu=data.get('workers_per_gpu', 2),
-    dataset=data['train']
-)
-
-val_dataloader = dict(
-    samples_per_gpu=data.get('samples_per_gpu', 8),
-    workers_per_gpu=data.get('workers_per_gpu', 2),
-    dataset=data['val']
-)
-
-test_dataloader = dict(
-    samples_per_gpu=data.get('samples_per_gpu', 8),
-    workers_per_gpu=data.get('workers_per_gpu', 2),
-    dataset=data['test']
-)
-
-# Definizione dell'ottimizzatore in un wrapper
-optim_wrapper = dict(
-    optimizer=optimizer
-)
-
-# Aggiungi queste righe per definire val_cfg e val_evaluator
-val_cfg = dict()
-val_evaluator = evaluation
-
-test_cfg = dict()
-test_evaluator = evaluation
+# test_evaluator = val_evaluator

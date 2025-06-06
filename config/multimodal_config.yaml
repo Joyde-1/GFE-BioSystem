@@ -18,6 +18,7 @@ save_images:
 matching_algorithm: euclidean # euclidean # chi-square #hamming
 
 features_fusion:
+  scaler_type: 'standard'
   # Definisce i pesi per ciascuna modalità
   weight_gait: 0.3
   weight_face: 0.4
@@ -26,7 +27,7 @@ features_fusion:
 matching:
   threshold: 0.4
 
-matching_fusion:
+score_fusion:
   weight_gait: 0.3
   weight_face: 0.4
   weight_ear: 0.15 

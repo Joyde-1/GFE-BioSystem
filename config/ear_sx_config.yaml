@@ -10,7 +10,7 @@ browse_path: False
 show_images:
   pre_processed_ear_image: False
   detected_ear_bounding_box: False
-  detected_ear_landmarks: True
+  detected_ear_landmarks: False
   alignment_ear_image: False
   post_processed_ear_image: False
   padded_ear_image: False
@@ -26,6 +26,8 @@ save_image:
 
 use_checkpoint: False
 
+biometric_trait: ear_sx
+
 detector: yolo
 features_extractor: fisherface
 matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
@@ -37,8 +39,10 @@ detection:
   image_size: 256
 
 ear_alignment:
-  desired_left_eye: [0.35, 0.35]
-  angle_threshold: 2
+  width_epsilon_ratio: 0.05
+  canny_threshold1: 50
+  canny_threshold2: 150
+  angle_threshold: 15 # 2
   factor: 0.9
 
 post_processing:
@@ -49,7 +53,7 @@ post_processing:
   clahe:
     cliplimit: 3.0 #2.0
     tilegridsize: [8, 8] #[8, 8]
-  image_size: 256 # 224
+  image_size: 32 # 224
 
 features_extraction:
   fisherfaces:

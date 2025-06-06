@@ -4,15 +4,14 @@ import os
 # Add the parent directory to sys.path to allow imports from data_classes
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_classes.load_data import LoadData
-from pre_processing.pre_processing import PreProcessing
+from pre_processing.pre_processing import FacePreProcessing
 from yolo_detection.yolo_detection import Yolo
-from post_processing.post_processing import PostProcessing
+from post_processing.post_processing import FacePostProcessing
 from features_extraction_classes.lbp import LBP
 from features_extraction_classes.gabor_wavelet import GaborWavelet
 from features_extraction_classes.fisherfaces import FisherFaceExtractor
-from matching_class.matching import Matching
+from matching_classes.matching import Matching
 from utils import load_config, browse_path, path_extractor, save_image, load_checkpoint, save_checkpoint
-
 
 
 if __name__ == '__main__':
@@ -23,18 +22,18 @@ if __name__ == '__main__':
         face_config.save_path = browse_path('Select the folder where images and plots will be saved')
 
         if face_config.detector == 'CNN':
-            face_config.cnn.checkpoints_dir = browse_path('Select the folder that contains model checkpoint')
+            face_config.cnn.checkpoints_dir = browse_path('Select the folder that contains CNN model checkpoint')
         if face_config.detector == 'yolo':
-            face_config.yolo.checkpoints_dir = browse_path('Select the folder that contains model checkpoint')
+            face_config.yolo.checkpoints_dir = browse_path('Select the folder that contains yolo model checkpoint')
 
-    images_data = LoadData(face_config, 'face')
-    images, image_names, image_paths = images_data.load_images()
+    images_data = LoadData()
+    images, image_names, image_paths = images_data.load_images(face_config, 'face')
 
-    pre_processing = PreProcessing(face_config)
+    pre_processing = FacePreProcessing(face_config)
 
     yolo = Yolo(face_config, 'face')
 
-    post_processing = PostProcessing(face_config)
+    post_processing = FacePostProcessing(face_config)
 
     lbp = LBP(face_config)
     gabor_wavelet = GaborWavelet(face_config)

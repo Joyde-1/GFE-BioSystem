@@ -85,7 +85,7 @@ def save_checkpoint(file_path, current_index):
     with open(file_path, 'w') as f:
         json.dump(checkpoint, f)
 
-def path_extractor(config, biometric_trait, image_name, file_suffix=""):
+def path_extractor(config, biometric_trait, image_name, file_suffix="", index=None):
     if file_suffix == "pca_cumulative_variance":
         save_path = os.path.join(config.save_path, "processed", "multimodal", "pca")
         # Crea la directory se non esiste
@@ -99,8 +99,8 @@ def path_extractor(config, biometric_trait, image_name, file_suffix=""):
         full_path = os.path.join(save_path, file_name)
         return full_path
 
-    save_path = os.path.join(config.save_path, "processed", biometric_trait, f"{config.detector.replace("_", " ")} {config.features_extractor.replace("_", " ")}", file_suffix.replace("_", " "))
-
+    save_path = os.path.join(config.save_path, "processed", biometric_trait, file_suffix.replace("_", " "))
+   
     # Crea la directory se non esiste
     if not os.path.exists(save_path):
         try:
@@ -113,13 +113,16 @@ def path_extractor(config, biometric_trait, image_name, file_suffix=""):
     if file_suffix == "plot_original_vs_processed":
         file_name = f"{image_name}_{file_suffix}.jpg"    
     else:
-        file_name = f"{image_name}_{file_suffix}.bmp"
+        if index is None:
+            file_name = f"{image_name}_{file_suffix}.png"
+        else:
+            file_name = f"{image_name}_{index}_{file_suffix}.png"
 
     full_path = os.path.join(save_path, file_name)
     
     return full_path
 
-def save_image(config, biometric_trait, image, image_name, file_suffix=""):
+def save_image(config, biometric_trait, image, image_name, file_suffix="", index=None):
     """
     Save an image to a specified directory with a given filename.
     
@@ -133,7 +136,7 @@ def save_image(config, biometric_trait, image, image_name, file_suffix=""):
         bool: True if the image was saved successfully, False otherwise.
     """
 
-    full_path = path_extractor(config, biometric_trait, image_name, file_suffix)
+    full_path = path_extractor(config, biometric_trait, image_name, file_suffix, index)
     
     # Salva l'immagine
     try:
@@ -143,3 +146,36 @@ def save_image(config, biometric_trait, image, image_name, file_suffix=""):
     except Exception as e:
         print(f"Failed to save image: {e}")
         return False
+    
+def save_gif(frames, config, gif_name, eye_side=None, file_suffix=""):
+    if eye_side != None:
+        save_path = os.path.join(config.save_path, "processed", "ear", config.algorithm_type.replace("_", " "), file_suffix.replace("_", " "))
+    else:
+        save_path = os.path.join(config.save_path, "processed", "face", config.algorithm_type.replace("_", " "), file_suffix.replace("_", " "))
+
+    # Crea la directory se non esiste
+    if not os.path.exists(save_path):
+        try:
+            os.makedirs(save_path)
+        except OSError as e:
+            print(f"Error: {e.strerror}")
+            return False
+
+    if eye_side != None:
+        # Crea la sottocartella per il lato (dx o sx)
+        save_path = os.path.join(save_path, eye_side)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+    # Genera il nome del file con suffisso
+    file_name = f"{gif_name}_{file_suffix}.gif"
+    full_path = os.path.join(save_path, file_name)
+
+    # Salva la gif
+    if len(frames) > 0:
+        imageio.mimsave(full_path, frames, fps=25)
+        print(f"Saved evolution as GIF: {full_path}")
+        return True
+    else:
+        print("No frames collected to save GIF.")
+        return False    

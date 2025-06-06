@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import os
+import sys
+
 
 try:
     from face.post_processing.face_alignment import FaceAlignment
@@ -9,9 +12,7 @@ except ModuleNotFoundError:
     except ModuleNotFoundError:
         from face_alignment import FaceAlignment
 
-
-
-class PostProcessing:
+class FacePostProcessing:
 
     def __init__(self, face_config):
         self.face_config = face_config
@@ -159,16 +160,16 @@ class PostProcessing:
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
 
-        # Utilizza CLAHE per un miglioramento locale del contrasto
-        face_image_equalized = self._apply_clahe(face_image_resized)
+        # # Utilizza CLAHE per un miglioramento locale del contrasto
+        # face_image_equalized = self._apply_clahe(face_image_resized)
 
-        if self.face_config.show_images.post_processed_face_image:
-            cv2.imshow("Equalized face image", face_image_equalized)
-            cv2.moveWindow("Equalized face image", 400, 400)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        # if self.face_config.show_images.post_processed_face_image:
+        #     cv2.imshow("Equalized face image", face_image_equalized)
+        #     cv2.moveWindow("Equalized face image", 400, 400)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
         
-        return face_image_equalized, face_image_gray.shape
+        return face_image_resized, face_image_gray.shape
 
     # def post_processing_image(self, image, bounding_box):
 

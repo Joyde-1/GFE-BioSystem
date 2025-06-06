@@ -1,25 +1,3 @@
-# import torch
-# from torch import nn, optim
-# from torch.utils.data import DataLoader
-
-# # importa la funzione che abbiamo creato
-# from gait_pretrained_stgcn_trans import build_pretrained_gait_model
-
-# # 3.1) Configura paths e device
-# PRETRAINED_CKPT = 'checkpoints/stgcn_ntu-xsub.pth'
-# DEVICE          = 'mps'   # o 'cuda' se disponibile
-
-# # 3.2) Costruisci il modello: backbone congelato + attention+head
-# model = build_pretrained_gait_model(
-#     pretrained_ckpt=PRETRAINED_CKPT,
-#     in_channels=2,
-#     base_channels=64,
-#     num_layers=3,
-#     emb_dim=128,
-#     num_heads=4,
-#     device=DEVICE
-# )
-
 # Standard library imports
 import warnings
 
@@ -36,6 +14,8 @@ import time
 import torch # PyTorch for machine learning
 import torch.nn as nn # Neural network modules in PyTorch
 from tqdm import tqdm  # Progress bar
+from pytorch_metric_learning.losses import ArcFaceLoss
+from pytorch_metric_learning.distances import CosineSimilarity
 
 # Local application/library specific imports
 # Add the parent directory to sys.path to allow imports from data_classes
@@ -102,17 +82,29 @@ def load_data(gait_embedding_extraction_config):
 
     plot_data_splitting(gait_embedding_extraction_config, train_set['keypoints_sequences'], test_set['keypoints_sequences'], val_set['keypoints_sequences'])
 
-    data_scaler = DataScaler(train_set['keypoints_sequences'], test_set['keypoints_sequences'], val_set['keypoints_sequences'])
+    # data_scaler = DataScaler(train_set['keypoints_sequences'], test_set['keypoints_sequences'], val_set['keypoints_sequences'])
+    data_scaler = DataScaler(gait_embedding_extraction_config)
 
-    if gait_embedding_extraction_config.nn.data.scaler == "standard":
-        train_set['keypoints_sequences'], test_set['keypoints_sequences'], val_set['keypoints_sequences'] = data_scaler.standard_scaler()
-    elif gait_embedding_extraction_config.nn.data.scaler == "min_max":
-        train_set['keypoints_sequences'], test_set['keypoints_sequences'], val_set['keypoints_sequences'] = data_scaler.min_max_scaler()
+    if gait_embedding_extraction_config.data.scaler == 'standard' or gait_embedding_extraction_config.data.scaler == 'min-max':
+        data_scaler.fit_scaler(train_set['keypoints_sequences'])
+        train_set['keypoints_sequences'] = data_scaler.scaling(train_set['keypoints_sequences'])
+        val_set['keypoints_sequences'] = data_scaler.scaling(val_set['keypoints_sequences'])
+        test_set['keypoints_sequences'] = data_scaler.scaling(test_set['keypoints_sequences'])
+        
+        print("\n\n")
+
+        print("Train data shape after scaling: ", train_set['keypoints_sequences'].shape)
+        print("Validation data shape after scaling: ", val_set['keypoints_sequences'].shape)
+        print("Test data shape after scaling: ", test_set['keypoints_sequences'].shape)
+    elif gait_embedding_extraction_config.data.scaler == 'None':
+        pass
+    else:
+        raise ValueError("Unknown scaler type! \n")
 
     # Create train dataset
-    train_dataset = GaitEmbeddingExtractionDataset(train_set, gait_embedding_extraction_config.data.image_size)
+    train_dataset = GaitEmbeddingExtractionDataset(train_set)
     # Create validation dataset
-    val_dataset = GaitEmbeddingExtractionDataset(val_set, gait_embedding_extraction_config.data.image_size)
+    val_dataset = GaitEmbeddingExtractionDataset(val_set)
     # Create test dataset
     test_dataset = GaitEmbeddingExtractionDataset(test_set)
 
@@ -131,7 +123,7 @@ def create_dataloaders(gait_embedding_extraction_config, train_dataset, val_data
 
     return train_dl, val_dl, test_dl
 
-def prepare_training_process(gait_embedding_extraction_config, model, train_dl):
+def prepare_training_process(gait_embedding_extraction_config, model, train_dl, device):
     """
     Prepares the training process by defining the loss function, optimizer, and learning rate scheduler.
 
@@ -155,10 +147,17 @@ def prepare_training_process(gait_embedding_extraction_config, model, train_dl):
     """
 
     # Define loss function
-    criterion = nn.SmoothL1Loss()
+    # criterion = nn.CrossEntropyLoss()
+
+    criterion = ArcFaceLoss(
+        num_classes=gait_embedding_extraction_config.data.num_classes,
+        embedding_size=gait_embedding_extraction_config.model.embedding_dim, # model.fc.out_features,  # dimensione embedding
+        margin=gait_embedding_extraction_config.loss_function.arcface.margin,
+        scale=gait_embedding_extraction_config.loss_function.arcface.scale
+    ).to(device)
 
     # Define optimizer with learning rate from config
-    optimizer = torch.optim.AdamW(model.parameters(), 
+    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), #model.parameters(), 
                                   lr=gait_embedding_extraction_config.optimizer.adamw.lr, 
                                   betas=gait_embedding_extraction_config.optimizer.adamw.betas, 
                                   eps=float(gait_embedding_extraction_config.optimizer.adamw.eps), 
@@ -197,7 +196,7 @@ def prepare_training_process(gait_embedding_extraction_config, model, train_dl):
     
     return criterion, optimizer, scheduler
 
-def train_one_epoch(gait_embedding_extraction_config, model, dataloader, criterion, optimizer, scheduler, device, epoch):
+def train_one_epoch(gait_embedding_extraction_config, model, dataloader, criterion, optimizer, scheduler, device, epoch, experiment):
     """
     Trains the model for one epoch.
 
@@ -237,20 +236,20 @@ def train_one_epoch(gait_embedding_extraction_config, model, dataloader, criteri
     # Iterate over batches
     for i, batch in enumerate(tqdm(dataloader, desc=f"Training Epoch {epoch+1}")):
         
-        # Move images to device  
-        images = batch['image'].to(device)
+        # Move keypoints sequences to device  
+        keypoints_sequences = batch['keypoints_sequence'].to(device)
 
         # Move labels to device
-        landmarks = batch['landmarks'].to(device)
+        labels = batch['label'].to(device)
 
         # Zero the parameter gradients
         optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(images)
+        embeddings = model(keypoints_sequences)
         
         # Compute loss
-        loss = criterion(outputs, landmarks)
+        loss = criterion(embeddings, labels)
         
         # Backward pass
         loss.backward()
@@ -268,10 +267,9 @@ def train_one_epoch(gait_embedding_extraction_config, model, dataloader, criteri
         running_loss += loss.item()
         
         # Store predictions and true labels
-        predictions.extend(outputs.cpu().detach().numpy())
-        # pred = torch.argmax(outputs, dim=4)
-        # predictions.extend(pred.cpu().numpy())
-        references.extend(landmarks.cpu().detach().numpy())
+        pred = torch.argmax(embeddings, dim=1)
+        predictions.extend(pred.cpu().numpy())
+        references.extend(labels.cpu().numpy())
 
     # Compute training metrics    
     train_metrics = compute_metrics(predictions, references)
@@ -284,11 +282,16 @@ def train_one_epoch(gait_embedding_extraction_config, model, dataloader, criteri
 
     # Loggare le metriche su Comet.ml
     experiment.log_metric("train_loss", train_metrics['loss'], epoch=epoch)
-    experiment.log_metric("train_mae", train_metrics['mae'], epoch=epoch)
-    experiment.log_metric("train_mse", train_metrics['mse'], epoch=epoch)
-    experiment.log_metric("train_rmse", train_metrics['rmse'], epoch=epoch)
-    experiment.log_metric("train_r2", train_metrics['r2'], epoch=epoch)
-    experiment.log_metric("train_mape", train_metrics['mape'], epoch=epoch)
+    experiment.log_metric("train_accuracy", train_metrics['accuracy'], epoch=epoch)
+    experiment.log_metric("train_f1", train_metrics['f1'], epoch=epoch)
+    experiment.log_metric("train_precision", train_metrics['precision'], epoch=epoch)
+    experiment.log_metric("train_recall", train_metrics['recall'], epoch=epoch)
+    # experiment.log_metric("train_loss", train_metrics['loss'], epoch=epoch)
+    # experiment.log_metric("train_mae", train_metrics['mae'], epoch=epoch)
+    # experiment.log_metric("train_mse", train_metrics['mse'], epoch=epoch)
+    # experiment.log_metric("train_rmse", train_metrics['rmse'], epoch=epoch)
+    # experiment.log_metric("train_r2", train_metrics['r2'], epoch=epoch)
+    # experiment.log_metric("train_mape", train_metrics['mape'], epoch=epoch)
 
     return train_metrics
 
@@ -301,7 +304,7 @@ def training_time(start_time, current_time):
 
     return hours, mins, secs
 
-def training_loop(gait_embedding_extraction_config, model, device, train_dl, val_dl, criterion, optimizer, scheduler):
+def training_loop(gait_embedding_extraction_config, model, device, train_dl, val_dl, criterion, optimizer, scheduler, experiment):
     """
     Executes the training loop for a given model configuration.
 
@@ -354,7 +357,7 @@ def training_loop(gait_embedding_extraction_config, model, device, train_dl, val
         print(f"Epoch {epoch + 1}/{gait_embedding_extraction_config.training.epochs}")
         
         # Train for one epoch
-        train_metrics = train_one_epoch(gait_embedding_extraction_config, model, train_dl, criterion, optimizer, scheduler, device, epoch)
+        train_metrics = train_one_epoch(gait_embedding_extraction_config, model, train_dl, criterion, optimizer, scheduler, device, epoch, experiment)
         
         # Validate model
         val_metrics = evaluate(model, val_dl, criterion, device)
@@ -363,30 +366,45 @@ def training_loop(gait_embedding_extraction_config, model, device, train_dl, val
         
         # Print metrics
         print("Train metrics:")
-        print(f"Loss: {train_metrics['loss']:.4f}",
-              f"MAE: {train_metrics['mae']:.4f}",
-              f"MSE: {train_metrics['mse']:.4f}",
-              f"RMSE: {train_metrics['rmse']:.4f}",
-              f"R2: {train_metrics['r2']:.4f}",
-              f"MAPE: {train_metrics['mape']:.4f} \n", sep="\n")
+        print(f"ArcFaceLoss: {train_metrics['loss']:.4f}",
+              f"Accuracy: {train_metrics['accuracy']:.4f}",
+              f"F1: {train_metrics['f1']:.4f}",
+              f"Precision: {train_metrics['precision']:.4f}",
+              f"Recall: {train_metrics['recall']:.4f} \n", sep="\n")
+        # print(f"Loss: {train_metrics['loss']:.4f}",
+        #       f"MAE: {train_metrics['mae']:.4f}",
+        #       f"MSE: {train_metrics['mse']:.4f}",
+        #       f"RMSE: {train_metrics['rmse']:.4f}",
+        #       f"R2: {train_metrics['r2']:.4f}",
+        #       f"MAPE: {train_metrics['mape']:.4f} \n", sep="\n")
               
         print("Val metrics:")
-        print(f"Loss: {val_metrics['loss']:.4f}",
-              f"MAE: {val_metrics['mae']:.4f}",
-              f"MSE: {val_metrics['mse']:.4f}",
-              f"RMSE: {val_metrics['rmse']:.4f}",
-              f"R2: {val_metrics['r2']:.4f}",
-              f"MAPE: {val_metrics['mape']:.4f} \n", sep="\n")
+        print(f"ArcFaceLoss: {val_metrics['loss']:.4f}",
+              f"Accuracy: {val_metrics['accuracy']:.4f}",
+              f"F1: {val_metrics['f1']:.4f}",
+              f"Precision: {val_metrics['precision']:.4f}",
+              f"Recall: {val_metrics['recall']:.4f} \n", sep="\n")
+        # print(f"Loss: {val_metrics['loss']:.4f}",
+        #       f"MAE: {val_metrics['mae']:.4f}",
+        #       f"MSE: {val_metrics['mse']:.4f}",
+        #       f"RMSE: {val_metrics['rmse']:.4f}",
+        #       f"R2: {val_metrics['r2']:.4f}",
+        #       f"MAPE: {val_metrics['mape']:.4f} \n", sep="\n")
         # print(f"Val loss: {val_metrics['loss']:.4f} - Val MAE: {val_metrics['mae']:.4f} - Val MSE: {val_metrics['mse']:.4f}", sep="", end="")
         # print(f"Val RMSE: {val_metrics['rmse']:.4f} - Val R2: {val_metrics['r2']:.4f} - Val MAPE: {val_metrics['mape']:.4f} \n")
 
         # Loggare le metriche di validazione su Comet.ml
         experiment.log_metric("val_loss", val_metrics['loss'], epoch=epoch)
-        experiment.log_metric("val_mae", val_metrics['mae'], epoch=epoch)
-        experiment.log_metric("val_mse", val_metrics['mse'], epoch=epoch)
-        experiment.log_metric("val_rmse", val_metrics['rmse'], epoch=epoch)
-        experiment.log_metric("val_r2", val_metrics['r2'], epoch=epoch)
-        experiment.log_metric("val_mape", val_metrics['mape'], epoch=epoch)
+        experiment.log_metric("val_accuracy", val_metrics['accuracy'], epoch=epoch)
+        experiment.log_metric("val_f1", val_metrics['f1'], epoch=epoch)
+        experiment.log_metric("val_precision", val_metrics['precision'], epoch=epoch)
+        experiment.log_metric("val_recall", val_metrics['recall'], epoch=epoch)
+        # experiment.log_metric("val_loss", val_metrics['loss'], epoch=epoch)
+        # experiment.log_metric("val_mae", val_metrics['mae'], epoch=epoch)
+        # experiment.log_metric("val_mse", val_metrics['mse'], epoch=epoch)
+        # experiment.log_metric("val_rmse", val_metrics['rmse'], epoch=epoch)
+        # experiment.log_metric("val_r2", val_metrics['r2'], epoch=epoch)
+        # experiment.log_metric("val_mape", val_metrics['mape'], epoch=epoch)
 
         early_stopping(val_metrics, epoch + 1)
 
@@ -423,10 +441,10 @@ def save_model(gait_embedding_extraction_config, model):
     """
 
     # Ensure the checkpoint directory exists, create if it doesn't
-    os.makedirs(f"{gait_embedding_extraction_config.training.checkpoints_dir}{gait_embedding_extraction_config.biometric_trait}_landmarks_detection", exist_ok=True)
+    os.makedirs(f"{gait_embedding_extraction_config.training.checkpoints_dir}", exist_ok=True)
 
     # If the path exists, modify the name to make it unique
-    model_path = os.path.join(f"{gait_embedding_extraction_config.training.checkpoints_dir}{gait_embedding_extraction_config.biometric_trait}_landmarks_detection", f"{gait_embedding_extraction_config.training.model_name}.pt")
+    model_path = os.path.join(f"{gait_embedding_extraction_config.training.checkpoints_dir}", f"{gait_embedding_extraction_config.training.model_name}.pt")
 
     # Save the best model's state dictionary to the checkpoint directory
     torch.save(model.state_dict(), model_path)
@@ -500,7 +518,7 @@ if __name__ == '__main__':
     print(f"Using device: {device} \n\n\n")
 
     # Select model
-    model = select_model(gait_embedding_extraction_config)
+    model = select_model(gait_embedding_extraction_config, device)
 
     experiment.set_model_graph(str(model))
 
@@ -511,10 +529,10 @@ if __name__ == '__main__':
     # •••••••••••••••••
     
     # Prepare training process
-    criterion, optimizer, scheduler = prepare_training_process(gait_embedding_extraction_config, model, train_dl)
+    criterion, optimizer, scheduler = prepare_training_process(gait_embedding_extraction_config, model, train_dl, device)
 
     # Train model
-    best_model = training_loop(gait_embedding_extraction_config, model, device, train_dl, val_dl, criterion, optimizer, scheduler)
+    best_model = training_loop(gait_embedding_extraction_config, model, device, train_dl, val_dl, criterion, optimizer, scheduler, experiment)
 
 
 

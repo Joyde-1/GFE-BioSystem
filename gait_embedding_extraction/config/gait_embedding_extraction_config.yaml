@@ -13,43 +13,59 @@ browse_path: False
 
 show_image:
   plot_data_splitting: False
+  plot_tsne: False
   plot_prediction: False
   plot_reference_vs_prediction: False
 
 save_image:
   save_loaded_image: True
   plot_data_splitting: True
+  plot_tsne: True
   plot_prediction: True
   plot_reference_vs_prediction: True
 
 data:
+  num_classes: 49  #49
+  selected_angles: [0, 45, 90, 180, 225, 270]
+  image_width: 256 # 256
+  image_height: 256 # 192
+  image_size: 256 # 192# 640
   val_size: 0.25
   test_size: 0.2
-  fixed_length: None
-  scaler: standard # None # standard
+  fixed_length: None # 25
+  scaler: None # None standard min-max
+  scaler_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait_embedding_extraction
 
 training:
-  model_name: resnet18 # mobilenetv2 # resnet50 # resnet18
-  epochs: 150
-  batch_size: 32
-  scheduler_name: reduce_lr_on_plateau
+  model_name: stgcn_trans
+  epochs: 100
+  batch_size: 16
+  scheduler_name: reduce_lr_on_plateau  # warm_up
   device: mps
-  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/
+  checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait_embedding_extraction
   evaluation_metric: loss
   min_delta: 0
   patience: 9
   lower_is_better: True
   initial_value_threshold: None
   save_best_weights: True
-  start_from_epoch: 146
-  num_workers: True
+  start_from_epoch: 16 # 146
+  num_workers: 8 # True
+
+loss_function:
+  arcface:
+    margin: 0.5 # 0.5
+    scale: 30.0 # 30.0
+  triplet:
+    margin: 0.3 # 0.5
+    lambda_triplet: 0.6 # 0.6 0.5
 
 optimizer: 
   adamw:
-    lr: 0.001
+    lr: 0.001 # 0.0003 0.00002
     betas: [0.9, 0.999]
     eps: 1e-08
-    weight_decay: 0
+    weight_decay: 0 # 0.00001 # 0 0.00005
 
 scheduler:
   reduce_lr_on_plateau:
@@ -69,10 +85,11 @@ scheduler:
     warmup_ratio: 0.1
 
 model:
-  input_channels: 3
-  num_filters: [16, 32]
-  kernel_size: 3
-  stride: 1
-  padding: 1
-  hidden_dim: 128
-  output_dim: 4
+  in_channels: 3
+  base_channels: 64
+  num_layers: 3
+  embedding_dim: 64  # 128 64
+  num_transformer_layers: 2
+  num_transformer_heads: 4
+  transformer_ffn_dim: 512
+  dropout: 0.3 # 0.5

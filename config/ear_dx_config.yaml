@@ -1,5 +1,5 @@
 # Paths
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database AMI
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/ear_detection
@@ -11,14 +11,14 @@ show_images:
   pre_processed_ear_image: False
   detected_ear_bounding_box: False
   detected_ear_landmarks: False
-  alignment_ear_image: True
-  post_processed_ear_image: True
+  alignment_ear_image: False
+  post_processed_ear_image: False
   padded_ear_image: False
   features_extracted_ear_image: False
 
 save_image:
   pre_processed: True
-  detected: True
+  detected: True # True False
   landmarks: True
   post_processed: True
   padded: True
@@ -26,7 +26,9 @@ save_image:
 
 use_checkpoint: False
 
-detector: yolo
+biometric_trait: ear_dx
+
+detector: yolo # yolo None
 features_extractor: fisherface
 matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
 

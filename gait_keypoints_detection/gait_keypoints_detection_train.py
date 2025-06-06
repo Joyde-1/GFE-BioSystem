@@ -34,10 +34,10 @@ def prepare_data(gait_keypoints_detection_config):
     """
 
     # Initialize data preparation object with the data directory from the config file
-    # prepare_data = PrepareData(gait_keypoints_detection_config)
+    prepare_data = PrepareData(gait_keypoints_detection_config)
 
     # Load and process training, validation and test datasets
-    # prepare_data.prepare_data()
+    prepare_data.prepare_data()
 
     print(f"Gait images and keypoints processed correctly. \n\n")
 

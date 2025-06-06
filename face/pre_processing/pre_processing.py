@@ -4,7 +4,7 @@ from rembg import remove
 from PIL import Image
 
 
-class PreProcessing:
+class FacePreProcessing:
     def __init__(self, face_config):
         self.face_config = face_config
 

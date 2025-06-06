@@ -1,8 +1,9 @@
 # Paths
 data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+# data_dir: /Users/giovanni/Desktop/database_atet
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
-predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
+predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_alignment
 
 browse_path: False
 
@@ -45,7 +46,7 @@ post_processing:
   clahe:
     cliplimit: 3.0 #2.0
     tilegridsize: [8, 8] #[8, 8]
-  image_size: 64 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
+  image_size: 32 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
 
 features_extraction:
   lbp:

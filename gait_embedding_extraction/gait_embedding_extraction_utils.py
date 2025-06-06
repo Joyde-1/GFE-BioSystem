@@ -2,22 +2,22 @@ import torch
 import os
 import sys
 import random
-import cv2
 import numpy as np
+from sklearn.manifold import TSNE
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error, r2_score, mean_absolute_percentage_error
 from yaml_config_override import add_arguments # Custom YAML config handling
 from addict import Dict # Dictionary-like class that allows attribute access
 import yaml # YAML parsing
 from pathlib import Path  # Object-oriented filesystem paths
-from tqdm import tqdm
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
-# try:
-#     from gait_embedding_extraction.model_class.cnn import MobileNetV2EarLandmarks, ResNet50EarLandmarks, ResNet18EarLandmarks
-#     from gait_embedding_extraction.gait_embedding_extraction_plots import plot_prediction, plot_reference_vs_prediction
-# except ModuleNotFoundError:
-#     from model_class.cnn import MobileNetV2EarLandmarks, ResNet50EarLandmarks, ResNet18EarLandmarks
-#     from gait_embedding_extraction_plots import plot_prediction, plot_reference_vs_prediction
+try:
+    from gait_embedding_extraction.model_class.gait_stgcn_trans import GaitSTGCNModel
+    from gait_embedding_extraction.gait_embedding_extraction_plots import plot_tsne
+except ModuleNotFoundError:
+    from model_class.gait_stgcn_trans import GaitSTGCNModel
+    from gait_embedding_extraction_plots import plot_tsne
 
 
 def load_config(my_config_path):
@@ -146,8 +146,8 @@ def select_device(gait_embedding_extraction_config):
             torch.mps.manual_seed(42)
         except Exception:
             pass  # In alcuni ambienti la funzione potrebbe non essere implementata
-    np.random.seed(0)
-    random.seed(0)
+    np.random.seed(42)
+    random.seed(42)
     
     # Configurazioni per rendere deterministico l'addestramento su GPU (se presente)
     torch.backends.cudnn.deterministic = True
@@ -155,7 +155,7 @@ def select_device(gait_embedding_extraction_config):
     
     return device
 
-def select_model(gait_embedding_extraction_config):
+def select_model(gait_embedding_extraction_config, device):
     """
     Initializes and returns a model based on the configuration settings and the specified number of input features.
 
@@ -185,12 +185,23 @@ def select_model(gait_embedding_extraction_config):
     model = None
 
     # Check the model type specified in the configuration and initialize accordingly    
-    if gait_embedding_extraction_config.training.model_name == 'mobilenetv2':
-        model = MobileNetV2EarLandmarks()
-    if gait_embedding_extraction_config.training.model_name == 'resnet18':
-        model = ResNet18EarLandmarks()
-    if gait_embedding_extraction_config.training.model_name == 'resnet50':
-        model = ResNet50EarLandmarks()
+    if gait_embedding_extraction_config.training.model_name == 'stgcn_trans':
+        model = GaitSTGCNModel(
+            num_classes=gait_embedding_extraction_config.data.num_classes,
+            pretrained_stgcn_path=f"{gait_embedding_extraction_config.training.checkpoints_dir}/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d_20221129-484a394a.pth",
+            device=device,
+            emb_dim=gait_embedding_extraction_config.model.embedding_dim,
+            transformer_layers=gait_embedding_extraction_config.model.num_transformer_layers,
+            transformer_heads=gait_embedding_extraction_config.model.num_transformer_heads,
+            transformer_ffn_dim=gait_embedding_extraction_config.model.transformer_ffn_dim,
+            dropout=gait_embedding_extraction_config.model.dropout
+        )
+
+        # Freeze parziale dei primi blocchi ST-GCN
+        for param in model.stgcn1.parameters():
+            param.requires_grad = False
+        for param in model.stgcn2.parameters():
+            param.requires_grad = False
 
     # If no valid model type is specified, print an error message and exit
     if model is None:
@@ -199,40 +210,117 @@ def select_model(gait_embedding_extraction_config):
     
     return model
 
-def compute_metrics(predictions, references):
-    """
-    Computes regression metrics: MAE and RMSE.
+# def compute_metrics(predictions, references):
+#     """
+#     Computes regression metrics: MAE and RMSE.
 
-    Parameters
-    ----------
-    predictions : list or array-like
-        Predicted ear landmarks list by the model.
-    references : list or array-like
-        Actual ear landmarks list from the dataset.
+#     Parameters
+#     ----------
+#     predictions : list or array-like
+#         Predicted ear landmarks list by the model.
+#     references : list or array-like
+#         Actual ear landmarks list from the dataset.
 
-    Returns
-    -------
-    dict
-        Dictionary containing computed metrics: MAE and RMSE.
-    """
-    predictions = np.array(predictions)
-    references = np.array(references)
+#     Returns
+#     -------
+#     dict
+#         Dictionary containing computed metrics: MAE and RMSE.
+#     """
+#     predictions = np.array(predictions)
+#     references = np.array(references)
 
-    mae = mean_absolute_error(references, predictions)
-    mse = mean_squared_error(references, predictions)
-    rmse = root_mean_squared_error(references, predictions)
-    r2 = r2_score(references, predictions)
-    mape = mean_absolute_percentage_error(references, predictions)
+#     # mae = mean_absolute_error(references, predictions)
+#     # mse = mean_squared_error(references, predictions)
+#     # rmse = root_mean_squared_error(references, predictions)
+#     # r2 = r2_score(references, predictions)
+#     # mape = mean_absolute_percentage_error(references, predictions)
+
+#     accuracy = accuracy_score(references, predictions)
+#     f1 = f1_score(references, predictions, average='macro')
+#     precision = precision_score(references, predictions, average='macro')
+#     recall = recall_score(references, predictions, average='macro')
+
+#     return {
+#         'accuracy': accuracy,
+#         'f1': f1,
+#         'precision': precision,
+#         'recall': recall
+#     }
     
-    return {
-        'mae': mae,
-        'mse': mse,
-        'rmse': rmse,
-        'r2': r2,
-        'mape': mape
-    }
+#     # return {
+#     #     'mae': mae,
+#     #     'mse': mse,
+#     #     'rmse': rmse,
+#     #     'r2': r2,
+#     #     'mape': mape
+#     # }
 
-def evaluate(model, dataloader, criterion, device, return_test_images=False):
+def compute_distance_matrix(embeddings: np.ndarray, metric: str = "euclidean") -> np.ndarray:
+    """
+    Calcola la matrice di distanza tra tutti gli embeddings.
+    Input:
+      - embeddings: array di shape (N, D)
+      - metric: "euclidean" (default) o "cosine"
+    Output:
+      - dist_matrix: array (N, N) delle distanze
+    """
+    if metric not in ("euclidean", "cosine"):
+        raise ValueError("Metric must be 'euclidean' or 'cosine'")
+
+    if metric == "euclidean":
+        # torch.cdist gestisce efficacemente l'operazione se convertiamo a tensor
+        emb_tensor = torch.from_numpy(embeddings)
+        dists = torch.cdist(emb_tensor, emb_tensor, p=2.0)
+        return dists.numpy()
+
+    # cosine distance = 1 - cosine similarity
+    emb_norm = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-9)
+    sim_matrix = np.dot(emb_norm, emb_norm.T)
+    cos_dist = 1.0 - sim_matrix
+    return cos_dist
+
+
+def compute_intra_inter_distances(embeddings: np.ndarray, labels: np.ndarray) -> tuple:
+    """
+    Calcola le distanze medie intra-classe e inter-classe.
+    Input:
+      - embeddings: array (N, D)
+      - labels:     array (N,)
+    Output: (avg_intra_dist, avg_inter_dist)
+    """
+    N = embeddings.shape[0]
+    # Pre-calcoliamo la matrice di distanza euclidea
+    dist_matrix = compute_distance_matrix(embeddings, metric="euclidean")
+
+    intra_dists = []
+    inter_dists = []
+
+    for i in range(N):
+        for j in range(i + 1, N):
+            if labels[i] == labels[j]:
+                intra_dists.append(dist_matrix[i, j])
+            else:
+                inter_dists.append(dist_matrix[i, j])
+
+    if len(intra_dists) > 0:
+        avg_intra = float(np.mean(intra_dists))
+    else:
+        avg_intra = 0.0
+
+    if len(inter_dists) > 0:
+        avg_inter = float(np.mean(inter_dists))
+    else:
+        avg_inter = 0.0
+
+    return avg_intra, avg_inter
+
+def compute_tsne(gait_embedding_extraction_config, all_embeddings, all_labels, epoch):
+    tsne = TSNE(n_components=2, perplexity=30, init='pca', random_state=42)
+    embs_2d = tsne.fit_transform(all_embeddings)
+
+    plot_tsne(gait_embedding_extraction_config, embs_2d, all_labels, epoch)
+
+def evaluate(gait_embedding_extraction_config, model, dataloader, arcface_criterion, triplet_criterion, device, epoch):
     """
     Evaluates a model using the given DataLoader and loss criterion.
 
@@ -256,139 +344,57 @@ def evaluate(model, dataloader, criterion, device, return_test_images=False):
     model.eval()
 
     running_loss = 0.0
+    running_accuracy = 0.0
+    num_samples = 0
 
-    predictions = []
-    references = []
-    test_images = []
+    # List to store embeddings
+    all_ambeddings = []
+    
+    # List to store labels
+    all_labels = []
     
     with torch.no_grad():
         for batch in dataloader:
-            images = batch['image'].to(device)
-            landmarks = batch['landmarks'].to(device)
+            keypoints_sequences = batch['keypoints_sequence'].to(device)
+            labels = batch['label'].to(device)
             
-            outputs = model(images)
+            # Forward: otteniamo embedding e logit
+            embeddings, logits = model(keypoints_sequences, labels)  # embeddings: (B, emb_dim), logits: (B, num_classes)
 
-            loss = criterion(outputs, landmarks)
+            # ArcFace loss
+            loss_arcface = arcface_criterion(embeddings, labels, model.classifier.weight)
 
-            running_loss += loss.item()
+            # Triplet loss
+            loss_triplet = triplet_criterion(embeddings, labels)
 
-            predictions.extend(outputs.cpu().numpy())
+            loss = gait_embedding_extraction_config.loss_function.triplet.lambda_triplet * loss_triplet + (1 - gait_embedding_extraction_config.loss_function.triplet.lambda_triplet) * loss_arcface
+
+            preds = torch.argmax(logits, dim=1)
+            correct = (preds == labels).sum().item()
+            accuracy = correct / labels.size(0)
+
+            # Update running loss
+            B = labels.size(0)
+            running_loss += loss.item() * B
+            running_accuracy += accuracy * B
+            num_samples += B
+
+            all_ambeddings.append(embeddings.cpu())
+            all_labels.append(labels.cpu())
             
-            references.extend(landmarks.cpu().numpy())
+    val_metrics = {}
+    val_metrics['loss'] = running_loss / num_samples
+    val_metrics['accuracy'] = running_accuracy / num_samples
 
-            if return_test_images:
-                test_images.extend(images.cpu().numpy())
-            
-    val_metrics = compute_metrics(predictions, references)
-    val_metrics['loss'] = running_loss / len(dataloader)
+    all_ambeddings = torch.cat(all_ambeddings, dim=0).numpy()  # (N, emb_dim)
+    all_labels = torch.cat(all_labels, dim=0).numpy()  # (N,)
 
-    if return_test_images:
-        return val_metrics, test_images, references, predictions
-    else:
-        return val_metrics
+    # Calcola le distanze intra e inter-classe
+    avg_intra_dist, avg_inter_dist = compute_intra_inter_distances(all_ambeddings, all_labels)
 
-def plot_inferences(iris_detection_config, test_images, reference_landmarks_list, prediction_landmarks_list, mean, std):
-    """
-    Plotta immagini, bounding box di riferimento e bounding box predette.
+    val_metrics['avg_intra_dist'] = avg_intra_dist
+    val_metrics['avg_inter_dist'] = avg_inter_dist
 
-    Parameters
-    ----------
-    test_images : list of torch.Tensor
-        Lista di immagini di test in formato tensor (C, H, W).
-    reference_bounding_boxes : list of torch.Tensor
-        Lista delle bounding box di riferimento, normalizzate in [0,1].
-    prediction_bounding_boxes : list of torch.Tensor
-        Lista delle bounding box predette, normalizzate in [0,1].
-    mean : list
-        Media usata per normalizzare l'immagine.
-    std : list
-        Deviazione standard usata per normalizzare l'immagine.
-    """
+    compute_tsne(gait_embedding_extraction_config, all_ambeddings, all_labels, epoch)
 
-    for counter, (test_image, reference_landmarks, prediction_landmarks) in tqdm(enumerate(zip(test_images, reference_landmarks_list, prediction_landmarks_list)), desc="Plotting inference images", unit=" plot"):
-        # Assicurati che siano numpy array
-        if torch.is_tensor(test_image):
-            test_image = test_image.cpu().numpy()
-        if torch.is_tensor(reference_landmarks):
-            reference_landmarks = reference_landmarks.cpu().numpy()
-        if torch.is_tensor(prediction_landmarks):
-            prediction_landmarks = prediction_landmarks.cpu().numpy()
-
-        # Passaggio da [C, H, W] a [H, W, C]
-        test_image = np.transpose(test_image, (1, 2, 0))  # Canali da prima a ultima dimensione
-
-        # Convertire da [0,1] a [0,255]
-        test_image = (test_image * 255).astype(np.uint8)
-
-        # Convertire da RGB a BGR per OpenCV
-        test_image = cv2.cvtColor(test_image, cv2.COLOR_RGB2BGR)
-        
-        reference_landmarks = np.squeeze(reference_landmarks)  # Da (1, H, W) a (H, W)
-        prediction_landmarks = np.squeeze(prediction_landmarks)  # Da (1, H, W) a (H, W)
-
-        reference_image = test_image.copy()
-        prediction_image = test_image.copy()
-
-        height, width, _ = test_image.shape
-
-        x_top_ref, y_top_ref, x_bottom_ref, y_bottom_ref, x_outer_ref, y_outer_ref, x_inner_ref, y_inner_ref = map(float, reference_landmarks)
-
-        # Calcola le coordinate dei reference landmarks in pixel
-        x_top_ref *= width
-        y_top_ref *= height
-        x_bottom_ref *= width
-        y_bottom_ref *= height
-        x_outer_ref *= width
-        y_outer_ref *= height
-        x_inner_ref *= width
-        y_inner_ref *= height
-
-        # x1_ref = int(x_center_ref - box_width_ref / 2)
-        # y1_ref = int(y_center_ref - box_height_ref / 2)
-        # x2_ref = int(x_center_ref + box_width_ref / 2)
-        # y2_ref = int(y_center_ref + box_height_ref / 2)
-
-        # Disegna i landmarks reference sull'immagine
-        cv2.circle(test_image, (int(x_top_ref), int(y_top_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(test_image, (int(x_bottom_ref), int(y_bottom_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(test_image, (int(x_outer_ref), int(y_outer_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(test_image, (int(x_inner_ref), int(y_inner_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(reference_image, (int(x_top_ref), int(y_top_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(reference_image, (int(x_bottom_ref), int(y_bottom_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(reference_image, (int(x_outer_ref), int(y_outer_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-        cv2.circle(reference_image, (int(x_inner_ref), int(y_inner_ref)), radius=3, color=(0, 255, 0), thickness=-1)
-
-        x_top_pred, y_top_pred, x_bottom_pred, y_bottom_pred, x_outer_pred, y_outer_pred, x_inner_pred, y_inner_pred = map(float, prediction_landmarks)
-
-        # Calcola le coordinate dei predicted landmarks in pixel
-        x_top_pred *= width
-        y_top_pred *= height
-        x_bottom_pred *= width
-        y_bottom_pred *= height
-        x_outer_pred *= width
-        y_outer_pred *= height
-        x_inner_pred *= width
-        y_inner_pred *= height
-
-        # x1_pred = int(x_center_pred - box_width_pred / 2)
-        # y1_pred = int(y_center_pred - box_height_pred / 2)
-        # x2_pred = int(x_center_pred + box_width_pred / 2)
-        # y2_pred = int(y_center_pred + box_height_pred / 2)
-
-        # Disegna i landmarks predetti sull'immagine
-        cv2.circle(test_image, (int(x_top_pred), int(y_top_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(test_image, (int(x_bottom_pred), int(y_bottom_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(test_image, (int(x_outer_pred), int(y_outer_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(test_image, (int(x_inner_pred), int(y_inner_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(prediction_image, (int(x_top_pred), int(y_top_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(prediction_image, (int(x_bottom_pred), int(y_bottom_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(prediction_image, (int(x_outer_pred), int(y_outer_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-        cv2.circle(prediction_image, (int(x_inner_pred), int(y_inner_pred)), radius=3, color=(0, 0, 255), thickness=-1)
-
-        test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
-        reference_image = cv2.cvtColor(reference_image, cv2.COLOR_BGR2RGB)
-        prediction_image = cv2.cvtColor(prediction_image, cv2.COLOR_BGR2RGB)
-
-        plot_prediction(iris_detection_config, reference_image, prediction_image, counter)
-
-        plot_reference_vs_prediction(iris_detection_config, test_image, counter)
+    return val_metrics

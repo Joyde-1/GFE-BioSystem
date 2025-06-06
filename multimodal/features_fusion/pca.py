@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
-from multimodal.plots import plot_principal_components
+
+from plots import plot_principal_components
 
 
 class FeaturesFusionPCA():
@@ -49,7 +50,7 @@ class FeaturesFusionPCA():
         print("Shape di combined_features:", combined_features.shape)  # Deve essere sempre (1, n_total_features)
         return combined_features
 
-    def features_fusion_pca(self, combined_templates):
+    def features_fusion_pca(self, combined_templates, file_suffix):
         """
         Determines the optimal number of principal components using PCA and reduces the data dimensionality accordingly.
 
@@ -75,7 +76,7 @@ class FeaturesFusionPCA():
         # Find the elbow point as the maximum of the second derivative
         optimal_components = np.argmax(second_derivative) + 1
 
-        plot_principal_components(self.multimodal_config, cumulative_variance_explained, optimal_components)
+        plot_principal_components(self.multimodal_config, cumulative_variance_explained, optimal_components, file_suffix)
         
         print("The value of optimal features obtained through PCA - Cumulative is: ", optimal_components)
 

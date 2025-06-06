@@ -1,8 +1,34 @@
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette/Silhouette_000-00/00001
-keypoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP-Pose/openpose/00/00001/090_00
-save_dir: /Users/giovanni/Desktop/Tesi di Laurea/extracted_keypoits
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette
+keypoints_sequences_dir: /Users/giovanni/Desktop/Tesi di Laurea/OUMVLP-Pose/pose_sequences/openpose
+save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
-predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
+keypoints_predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
 models_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait
 
 browse_path: False
+use_checkpoint: False
+
+matching_algorithm: cosine_similarity # chi-square # hamming # euclidean # cosine_similarity
+
+# On/Off show images
+show_images:
+  pre_processed: False
+  detected_keypoints: True
+
+save_image:
+  pre_processed: True
+  detected_keypoints: True
+
+data:
+  num_classes: 49 #49
+pre_processing:
+  frame_width: 256
+  frame_height: 256
+  padding: 20
+  fixed_length: 29
+  scaler: standard # None # standard
+detection:
+  image_size: 256 # 192 # 640
+
+matching:
+  threshold: 16

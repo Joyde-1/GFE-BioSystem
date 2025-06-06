@@ -9,7 +9,6 @@ from yaml_config_override import add_arguments # Custom YAML config handling
 from addict import Dict # Dictionary-like class that allows attribute access
 import yaml # YAML parsing
 from pathlib import Path  # Object-oriented filesystem paths
-from ultralytics import YOLO
 from tqdm import tqdm
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
