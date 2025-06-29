@@ -1,41 +1,49 @@
 import torch
+import torch.nn as nn
 import numpy as np
 from torch.utils.data import Dataset
 
 
 class GaitEmbeddingExtractionDataset(Dataset):
-    def __init__(self, dataset):
-        self.keypoints_sequences = dataset['keypoints_sequences']
+    def __init__(self, dataset, transform=None, flatten=True):
+        """
+        Parameters
+        ----------
+        dataset : dict
+            {'keypoints_sequences': list/array (N, L, 17, 2),
+             'labels'            : list/array (N,) }
+            Le sequenze devono essere già normalizzate e
+            portate alla lunghezza fissa L (es. 32).
+        transform : callable or None
+            Pipeline di data-augmentation da applicare **solo in training**.
+        flatten : bool
+            Se True restituisce shape (L, 34) per il modello fully-connected;
+            altrimenti mantiene (L, 17, 2) (utile per ST-GCN, ecc.).
+        """
+        self.seq   = dataset['keypoints_sequences']
         self.labels = dataset['labels']
+        self.transform = transform
+        self.flatten = flatten
 
     def __len__(self):
-        return len(self.keypoints_sequences)
+        return len(self.seq)
 
-    def __getitem__(self, index):
-        np_keypoints_sequence = self.keypoints_sequences[index]           # numpy (T,17,2)
-        np_label = self.labels[index]
+    def __getitem__(self, idx):
+        seq_np   = np.asarray(self.seq[idx], dtype=np.float32)   # (L, J, 2)
+        label_np = self.labels[idx]
 
-        T, F = np_keypoints_sequence.shape
+        seq = torch.from_numpy(seq_np)                           # Tensor
 
-        if F == 17 * 3:
-            np_keypoints_sequence = np_keypoints_sequence.reshape(T, 17, 3).astype(np.float32)  # Convert to (T, 17, 3)
-        else:
-            raise ValueError(f"Unexpected number of features: {F}. Expected 34 or 51.")
+        # ---- data-augmentation (solo se definita) --------------
+        if self.transform is not None:
+            seq = self.transform(seq).float()
 
-        # Convert sequences to float32
-        np_keypoints_sequence = np.array(np_keypoints_sequence, dtype=np.float32)  # Convert sequences to float32
-
-        # Convert sequence to torch tensor
-        torch_sequence = torch.from_numpy(np_keypoints_sequence)
-
-        torch_sequence = torch_sequence.permute(2, 0, 1).contiguous()  # now (C, T, 17)
-
-        # Convert labels to torch tensor
-        torch_label = torch.tensor(np_label - 1, dtype=torch.long)
+        # ---- eventuale flatten ---------------------------------
+        if self.flatten:                                         # (L,34)
+            seq = seq.view(seq.shape[0], -1)
 
         item = {
-            'keypoints_sequence': torch_sequence,
-            'label': torch_label
+            'keypoints_sequence': seq,                           # float32
+            'label'            : torch.tensor(label_np, dtype=torch.long)
         }
-
         return item

@@ -1,5 +1,7 @@
 # Paths
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database AMI
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database AMI
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database AMI multimodale
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/ear_detection
@@ -28,7 +30,7 @@ use_checkpoint: False
 
 biometric_trait: ear_dx
 
-detector: yolo # yolo None
+detector: None # yolo None
 features_extractor: fisherface
 matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
 
@@ -57,8 +59,10 @@ post_processing:
 
 features_extraction:
   fisherfaces:
+    load_model: True # False # True
     scaler_type: None #'standard'
     checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/ear_dx_lda
 
 matching:
+  test_ratio: 0.2 # 0.2
   threshold: 15

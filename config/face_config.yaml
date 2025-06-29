@@ -1,6 +1,7 @@
 # Paths
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
-# data_dir: /Users/giovanni/Desktop/database_atet
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database atet
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database atet multimodale
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_alignment
@@ -63,8 +64,10 @@ features_extraction:
     psi: 0 # 0              # Fase
     num_orientations: 12     # Numero di orientazioni (per avere una rappresentazione completa)
   fisherfaces:
+    load_model: True # False # True
     scaler_type: None #'standard'
     checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_lda
 
 matching:
+  test_ratio: 0.2 # 0.2
   threshold: 16

@@ -39,14 +39,13 @@ class FeaturesFusionPCA():
             return pca.explained_variance_ratio_
     
     # Combine features templates
-    def weighted_concatenation(self, gait_features, face_features, ear_dx_features, ear_sx_features):
+    def weighted_concatenation(self, gait_features, face_features, ear_features):
         # Applica i pesi
         weighted_gait = gait_features * self.multimodal_config.features_fusion.weight_gait
         weighted_face = face_features * self.multimodal_config.features_fusion.weight_face
-        weighted_ear_dx = ear_dx_features * self.multimodal_config.features_fusion.weight_ear
-        weighted_ear_sx = ear_sx_features * self.multimodal_config.features_fusion.weight_ear
+        weighted_ear = ear_features * self.multimodal_config.features_fusion.weight_ear
 
-        combined_features = np.concatenate((weighted_gait, weighted_face, weighted_ear_dx, weighted_ear_sx), axis=1)
+        combined_features = np.concatenate((weighted_gait, weighted_face, weighted_ear), axis=1)
         print("Shape di combined_features:", combined_features.shape)  # Deve essere sempre (1, n_total_features)
         return combined_features
 

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import platform
 import subprocess
 
-from utils import save_image
+from utils import path_extractor
 
 
 def _open_image(image_path):
@@ -86,7 +86,7 @@ def plot_principal_components(multimodal_config, cumulative_variance_explained, 
     #     plt.savefig(pca_plots_path)
 
     if multimodal_config.save_images.plot_pca_cumulative_variance:
-        figure_path = save_image(None, multimodal_config, "", file_suffix=file_suffix)
+        figure_path = path_extractor(multimodal_config, "", "", file_suffix=file_suffix)
         plt.savefig(figure_path)
         plt.close()
 

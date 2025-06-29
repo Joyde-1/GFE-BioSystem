@@ -74,7 +74,8 @@ class LoadData:
         }
         """
         # i codici delle sequenze che ci interessano
-        sequence_names = ['000-00', '000-01', '180-00', '180-01', '015-00']
+        # sequence_names = ['000-00', '000-01', '180-00', '180-01', '015-00']
+        # sequence_names = ['000-00', '000-01', '015-00', '015-01', '030-00'] # , '180-00', '180-01', '015-00']
 
         # Percorso base della cartella dei keypoints
         keypoints_base_dir = os.path.join(config.keypoints_sequences_dir, "00")
@@ -85,15 +86,28 @@ class LoadData:
         frame_sequences = []
         frame_sequences_names = []
         frame_sequences_paths = []
+        all_subject_ids = []
+        all_sequence_names = []
+        all_frame_names = []
+
+        check = 0
+
+        step = 5
 
         # per ogni soggetto da 1 a 49
-        for subject in tqdm(range(1, config.data.num_classes + 1), desc=f"Loading {biometric_trait} frames", unit="frame"):
-            subject_id = str(subject)
+        for subject in tqdm(range(1, config.data.num_classes + 1 + step), desc=f"Loading {biometric_trait} frames", unit="frame"):
             # frame_sequences[subject_id] = []
             # frame_sequences_paths[subject_id] = []
+
+            if subject == 1 or subject == 7 or subject == 16 or subject == 20 or subject == 28:
+                check += 1
+                continue
+
+            real_subject = subject - check
+            real_subject_id = str(real_subject)
             
             # per ogni sequenza di interesse
-            for num_sequence, sequence_name in enumerate(sequence_names):
+            for num_sequence, sequence_name in enumerate(config.data.sequence_names):
                 # path alla cartella della sequenza per il soggetto
                 # es: root_dir/Silhouette_000-00/00001
                 sequence_folder = os.path.join(
@@ -118,6 +132,9 @@ class LoadData:
 
                 frame_sequence = []
                 frame_paths = []
+                subject_ids = [] 
+                sequence_names = []
+                frame_names = []
 
                 for frame_path in full_frame_paths:
                     # Estrai il nome del file (es. 0001.png)
@@ -138,17 +155,25 @@ class LoadData:
                         frame = cv2.imread(frame_path, cv2.IMREAD_COLOR)
                         frame_sequence.append(frame)
                         frame_paths.append(frame_path)
-
+                        subject_ids.append(f"{real_subject:05d}")
+                        sequence_names.append(sequence_name.split('-')[0] + '_' + sequence_name.split('-')[1])
+                        frame_names.append(f"{frame_name}_keypoints.txt")
+                if len(frame_sequence) == 0 and len(frame_paths) == 0:
+                    # Se non ci sono frame validi, salta questa sequenza
+                    continue
                 frame_sequences.append(frame_sequence)
                 # frame_sequences_names.append(f"{subject_id}_{sequence_name.split('-')[0] + '_' + sequence_name.split('-')[1]}")
-                frame_sequences_names.append(f"{subject_id}_{num_sequence + 1}")
+                frame_sequences_names.append(f"{real_subject_id}_{num_sequence + 1}")
                 frame_sequences_paths.append(frame_paths)
+                all_subject_ids.append(subject_ids)
+                all_sequence_names.append(sequence_names)
+                all_frame_names.append(frame_names)
         
         # per es. stampo quanti frame trova per il soggetto '1' in ogni sequenza
         for i, seq in enumerate(frame_sequences):
             print(f"Sequenza {i}: {len(seq)} frame")
 
-        return frame_sequences, frame_sequences_names, frame_sequences_paths
+        return frame_sequences, frame_sequences_names, frame_sequences_paths, all_subject_ids, all_sequence_names, all_frame_names
 
 
     

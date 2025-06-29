@@ -86,7 +86,7 @@ def save_checkpoint(file_path, current_index):
         json.dump(checkpoint, f)
 
 def path_extractor(config, biometric_trait, image_name, file_suffix="", index=None):
-    if file_suffix == "pca_cumulative_variance":
+    if "pca_cumulative_variance" in file_suffix:
         save_path = os.path.join(config.save_path, "processed", "multimodal", "pca")
         # Crea la directory se non esiste
         if not os.path.exists(save_path):
@@ -110,7 +110,7 @@ def path_extractor(config, biometric_trait, image_name, file_suffix="", index=No
             return False
         
     # Genera il nome del file con suffisso
-    if file_suffix == "plot_original_vs_processed":
+    if "plot_original_vs_processed" in file_suffix:
         file_name = f"{image_name}_{file_suffix}.jpg"    
     else:
         if index is None:
@@ -141,41 +141,8 @@ def save_image(config, biometric_trait, image, image_name, file_suffix="", index
     # Salva l'immagine
     try:
         cv2.imwrite(full_path, image)
-        print(f"Image saved successfully at {full_path}")
+        # print(f"Image saved successfully at {full_path}")
         return True
     except Exception as e:
         print(f"Failed to save image: {e}")
         return False
-    
-def save_gif(frames, config, gif_name, eye_side=None, file_suffix=""):
-    if eye_side != None:
-        save_path = os.path.join(config.save_path, "processed", "ear", config.algorithm_type.replace("_", " "), file_suffix.replace("_", " "))
-    else:
-        save_path = os.path.join(config.save_path, "processed", "face", config.algorithm_type.replace("_", " "), file_suffix.replace("_", " "))
-
-    # Crea la directory se non esiste
-    if not os.path.exists(save_path):
-        try:
-            os.makedirs(save_path)
-        except OSError as e:
-            print(f"Error: {e.strerror}")
-            return False
-
-    if eye_side != None:
-        # Crea la sottocartella per il lato (dx o sx)
-        save_path = os.path.join(save_path, eye_side)
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-
-    # Genera il nome del file con suffisso
-    file_name = f"{gif_name}_{file_suffix}.gif"
-    full_path = os.path.join(save_path, file_name)
-
-    # Salva la gif
-    if len(frames) > 0:
-        imageio.mimsave(full_path, frames, fps=25)
-        print(f"Saved evolution as GIF: {full_path}")
-        return True
-    else:
-        print("No frames collected to save GIF.")
-        return False    

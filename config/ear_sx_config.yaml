@@ -1,5 +1,6 @@
 # Paths
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database ear_sx multimodale
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
@@ -57,8 +58,10 @@ post_processing:
 
 features_extraction:
   fisherfaces:
+    load_model: True # False # True
     scaler_type: None #'standard'
     checkpoints_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/ear_sx_lda
 
 matching:
+  test_ratio: 0.2 # 0.2
   threshold: 15

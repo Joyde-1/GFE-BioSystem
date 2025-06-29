@@ -1,34 +1,47 @@
 data_dir: /Users/giovanni/Desktop/Tesi di Laurea/OU-MVLP/silhouette
 keypoints_sequences_dir: /Users/giovanni/Desktop/Tesi di Laurea/OUMVLP-Pose/pose_sequences/openpose
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
+save_detected_keypoints_sequences_path: /Users/giovanni/Desktop/Tesi di Laurea/gait_detected_keypoints_sequences
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
-keypoints_predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
 models_dir: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/gait
 
 browse_path: False
 use_checkpoint: False
+save_detected_keypoints: False # True
 
-matching_algorithm: cosine_similarity # chi-square # hamming # euclidean # cosine_similarity
+matching_algorithm: cosine_distance # chi-square # hamming # euclidean # cosine_similarity # cosine_distance
 
 # On/Off show images
 show_images:
   pre_processed: False
-  detected_keypoints: True
+  detected_keypoints: False
+  visualize_keypoints: False  # Visualize keypoints on the original frame
 
 save_image:
   pre_processed: True
   detected_keypoints: True
+  post_processed: True
 
 data:
-  num_classes: 49 #49
+  num_classes: 40 # 5000 #49  # 40
+  sequence_names: ['060-01', '075-00', '075-01', '090-00', '090-01'] # ['030-00', '060-00', '060-01', '090-00', '090-01'] # ['060-01', '075-00', '075-01', '090-00', '090-01'] # 
+  # sequence_names: ['030-00', '060-00', '060-01', '090-00', '090-01']
+  # sequence_names: ['030-00', '030-01', '045-00', '045-01', '060-00', '060-01', '075-00', '075-01', '090-00', '090-01'] #, '180-00', '180-01', '195-00', '195-01', '210-00', '210-01', '225-00', '225-01', '240-00', '240-01', '255-00', '255-01', '270-00', '270-01']
+  # sequence_names: ['000-00', '000-01', '015-00', '015-01', '030-00', '030-01', '045-00', '045-01', '060-00', '060-01', '075-00', '075-01', '090-00', '090-01'] #, '180-00', '180-01', '195-00', '195-01', '210-00', '210-01', '225-00', '225-01', '240-00', '240-01', '255-00', '255-01', '270-00', '270-01']
+  # sequence_names: ['180-00', '180-01', '195-00', '195-01', '210-00', '210-01', '225-00', '225-01', '240-00', '240-01', '255-00', '255-01', '270-00', '270-01']
 pre_processing:
-  frame_width: 256
-  frame_height: 256
+  frame_width: 128
+  frame_height: 128
   padding: 20
-  fixed_length: 29
+  interpolation_method: linear
+  normalization_method: hip_center
+  add_frame_method: reply # reply
+  delete_frame_method: truncate # downsample
+  fixed_length: 25 # 32 # 25
   scaler: standard # None # standard
 detection:
-  image_size: 256 # 192 # 640
+  image_size: 128 # 192 # 640
 
 matching:
-  threshold: 16
+  test_ratio: 0.2 # 0.2
+  threshold: 0.5

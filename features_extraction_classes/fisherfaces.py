@@ -18,7 +18,12 @@ class FisherFaceExtractor:
 		self._config = config
 		self.n_components = 0
 		self._scaler = FeaturesScaling(self._config.features_extraction.fisherfaces.scaler_type)
-		self._lda = None
+
+		if self._config.features_extraction.fisherfaces.load_model:
+			# Carica il modello LDA da un file
+			self._load_lda_model()
+		else:
+			self._lda = None
 		
 	def _scale_images(self, images):
 		if self._config.features_extraction.fisherfaces.scaler_type != 'None':
@@ -117,7 +122,7 @@ class FisherFaceExtractor:
 
 		self._save_lda_model()
 	
-	def _extract_fisherface(self, image):
+	def extract_fisherface(self, image):
 		"""
 		Estrae il vettore delle caratteristiche (proiezione LDA) per l'immagine fornita.
 		
@@ -155,7 +160,7 @@ class FisherFaceExtractor:
 
 		return face_features[0]
 	
-	def _extract_visual(self, fisherface, width, height):
+	def extract_visual(self, fisherface, width, height):
 		"""
 		Crea una rappresentazione visiva della Fisherface.
 
@@ -203,11 +208,11 @@ class FisherFaceExtractor:
 
 	def extract_fisherfaces(self, subjects, width, height):
 		self._train_lda(subjects)
-		fisherfaces = [self._extract_fisherface(np.array(image)) for image in self.images]
-		print("Pompa faces: ", type(fisherfaces))
-		print("Pompa faces: ", len(fisherfaces))
-		print("Pompa faces: ", type(fisherfaces[0]))
-		print("Pompa faces: ", fisherfaces[0].shape)
-		visual_fisherfaces = [self._extract_visual(fisherface, width, height) for fisherface in fisherfaces]
+		fisherfaces = [self.extract_fisherface(np.array(image)) for image in self.images]
+		print("Fisher faces: ", type(fisherfaces))
+		print("Fisher faces: ", len(fisherfaces))
+		print("Fisher faces: ", type(fisherfaces[0]))
+		print("Fisher faces: ", fisherfaces[0].shape)
+		visual_fisherfaces = [self.extract_visual(fisherface, width, height) for fisherface in fisherfaces]
 		# visual_fisherfaces = [self._lda.scalings_[:, i].reshape((self._config.post_processing.image_size, self._config.post_processing.image_size)) for i in range(len(fisherfaces))]
 		return fisherfaces, visual_fisherfaces

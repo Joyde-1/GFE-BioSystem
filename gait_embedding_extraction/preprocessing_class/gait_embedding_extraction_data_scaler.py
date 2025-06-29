@@ -218,9 +218,12 @@ class DataScaler:
             The flattened data.
         """
 
-        num_samples, seq_length, num_features = data.shape
+        # Salvo le dimensioni originali
+        # num_samples, seq_length, num_features = data.shape
+        num_samples, seq_length, num_keypoints, coords_and_confidence = data.shape
 
-        return data.reshape(num_samples * seq_length, num_features)
+        # return data.reshape(num_samples * seq_length, num_features)
+        return data.reshape(num_samples * seq_length, num_keypoints * coords_and_confidence)
 
     def _reshape_data(self, data, shape):
         """

@@ -1,3 +1,4 @@
+import numpy as np
 import sys
 import os
 
@@ -8,7 +9,9 @@ from pre_processing.pre_processing import EarPreProcessing
 from yolo_detection.yolo_detection import Yolo
 from post_processing.post_processing import EarPostProcessing
 from features_extraction_classes.fisherfaces import FisherFaceExtractor
-from matching_classes.matching import Matching
+from metrics_classes.verification import Verification
+from metrics_classes.recognition_closed_set import RecognitionClosedSet
+from metrics_classes.recognition_open_set import RecognitionOpenSet
 from utils import load_config, browse_path, path_extractor, save_image, load_checkpoint, save_checkpoint
 
 
@@ -33,6 +36,9 @@ if __name__ == '__main__':
     yolo = Yolo(ear_config, 'ear_dx')
 
     post_processing = EarPostProcessing(ear_config)
+
+    if ear_config.features_extraction.fisherfaces.load_model:
+        fisherface_extractor = FisherFaceExtractor(ear_config)
 
     if ear_config.use_checkpoint:
         checkpoint = load_checkpoint('checkpoint_ear_dx.json')
@@ -76,8 +82,8 @@ if __name__ == '__main__':
         else:
             raise ValueError("Unknown algorithm type! \n")
         
-        if ear_config.save_image.detected:
-            save_image(ear_config, 'ear_dx', detected_image, image_name, 'detected_ear_dx_bounding_box')
+        # if ear_config.save_image.detected:
+        #     save_image(ear_config, 'ear_dx', detected_image, image_name, 'detected_ear_dx_bounding_box')
 
         post_processed_ear_image, shape = post_processing.post_processing_image(pre_processed_ear_image.copy(), bounding_box)
 
@@ -95,12 +101,27 @@ if __name__ == '__main__':
         if ear_config.save_image.post_processed:
             save_image(ear_config, 'ear_dx', post_processed_ear_image, image_name, 'post_processed_ear_dx_image')
 
-        if ear_config.features_extractor == 'fisherface':
+        if ear_config.features_extractor == 'fisherface' and ear_config.features_extraction.fisherfaces.load_model:
+            ear_template = fisherface_extractor.extract_fisherface(np.array(post_processed_ear_image))
+            ear_template_vis = fisherface_extractor.extract_visual(ear_template, ear_config.post_processing.image_size, ear_config.post_processing.image_size)
+        elif ear_config.features_extractor == 'fisherface' and not ear_config.features_extraction.fisherfaces.load_model:
             subjects[subject]['acquisition_name'].append(image_name)
             subjects[subject]['template'].append(post_processed_ear_image)       
+
+            # Salva il checkpoint dopo ogni combinazione
+            if ear_config.use_checkpoint:
+                save_checkpoint('checkpoint_ear_dx.json', current_index + 1)
+
+            continue
         else:
             raise ValueError("Unknown algorithm type! \n")
         
+        if ear_config.save_image.features_extracted:
+            save_image(ear_config, 'ear_dx', ear_template_vis, image_name, f"{ear_config.features_extractor}_ear_dx_image")
+        
+        subjects[subject]['acquisition_name'].append(image_name)
+        subjects[subject]['template'].append(ear_template) 
+
         # Salva il checkpoint dopo ogni combinazione
         if ear_config.use_checkpoint:
             save_checkpoint('checkpoint_ear_dx.json', current_index + 1)
@@ -141,7 +162,7 @@ if __name__ == '__main__':
     #     # Aggiorna l'indice per il prossimo soggetto
     #     padded_ear_images_index += num_acquisitions
 
-    if ear_config.features_extractor == 'fisherface':
+    if ear_config.features_extractor == 'fisherface' and not ear_config.features_extraction.fisherfaces.load_model:
         fisherface_extractor = FisherFaceExtractor(ear_config)
 
         # fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, max_width, max_height)
@@ -167,17 +188,50 @@ if __name__ == '__main__':
 
             # Aggiorna l'indice per il prossimo soggetto
             fisherfaces_index += num_acquisitions
-    
-    ear_matching = Matching(ear_config, 'ear_dx')
 
-    far, fa, t_imp = ear_matching.calculate_far(subjects)
-    frr, fr, t_legit = ear_matching.calculate_frr(subjects)
-    accuracy = ear_matching.calculate_accuracy(t_imp, t_legit, fa, fr)
+    # Verification phase
+    ear_verification = Verification(ear_config, 'ear_dx')
 
-    print("", "Matching ear dx metrics:")
+    far, fa, t_imp, ms_far, thr_far = ear_verification.calculate_far(subjects)
+    frr, fr, t_legit, ms_frr, thr_frr = ear_verification.calculate_frr(subjects)
+    accuracy = ear_verification.calculate_accuracy(t_imp, t_legit, fa, fr)
+
+    print("", "Ear dx verification task metrics:", sep='\n')
     print(f"FAR: {far:.4f} %")
+    print(f"Tempo di ricerca (FAR): {ms_far:.4f} ms/probe")
+    print(f"Throughput (FAR): {thr_far:.4f} probe/sec")
     print(f"FRR: {frr:.4f} %")
-    print(f"accuracy: {accuracy:.4f} %")
+    print(f"Tempo di ricerca (FRR): {ms_frr:.4f} ms/probe")
+    print(f"Throughput (FRR): {thr_frr:.4f} probe/sec")
+    print(f"Accuracy: {accuracy:.4f} %")
 
-    ear_matching.calculate_roc_and_det(subjects)
-    ear_matching.far_vs_frr(subjects)
+    ear_verification.calculate_roc_and_det(subjects)
+    ear_verification.far_vs_frr(subjects)
+
+    # Recognition closed-set phase
+    ear_recognition_closed_set = RecognitionClosedSet(ear_config, 'ear_dx')
+
+    rank1, rank5, mAP, t_ms, tps = ear_recognition_closed_set.evaluate_kfold(subjects, max_rank=20)
+
+    print("", "Ear dx recognition (closed-set) task metrics:", sep='\n')
+    print(f"Rank-1 medio: {rank1:.4f}%")
+    print(f"Rank-5 medio: {rank5:.4f}%")
+    print(f"mAP medio: {mAP:.4f}%")
+    print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
+    print(f"Throughput: {tps:.4f} probe/sec")
+
+    # Recognition open-set phase
+    ear_recognition_open_set = RecognitionOpenSet(ear_config, 'ear_dx')
+
+    fp, fn, t_ms, tps = ear_recognition_open_set.fpir_fnir(subjects, threshold=0.35)
+    fpir, fnir, eer, eer_th = ear_recognition_open_set.fpir_fnir_curve(subjects)
+    fpir_arr, fnir_arr, eer, eer_th = ear_recognition_open_set.det_curve(subjects)
+    fpir_arr, fnir_arr, dir_arr = ear_recognition_open_set.dir_fpir_curve(subjects)
+
+    print("", "Ear dx recognition (open-set) task metrics:", sep='\n')
+    print(f"FPIR: {fp:.4f} %")
+    print(f"FNIR: {fn:.4f} %")
+    print(f"EER: {eer:.4f} %")
+    print(f"threshold: {eer_th:.4f} %")
+    print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
+    print(f"Throughput: {tps:.4f} probe/sec")

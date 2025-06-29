@@ -5,10 +5,6 @@ import sys
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import cv2
-import numpy as np
-import torch
-from torchvision import transforms
-from PIL import Image
 from ultralytics import YOLO
 
 try:
@@ -39,7 +35,7 @@ class YoloPose:
         # Load model
         self._load_model(yolo_pose_detection_config)
 
-    def predict_bounding_box(self, image_path):
+    def predict_keypoints(self, image_path):
         # Effettua la predizione
         prediction = self.model.predict(
             source=image_path,
@@ -47,6 +43,7 @@ class YoloPose:
             iou=0.6,
             imgsz=self._config.detection.image_size,
             device=self.device,
+            max_det=1,
             retina_masks=False,
             # Visualization params:
             show=False,
@@ -82,8 +79,8 @@ class YoloPose:
 
         keypoints_coords = prediction[0].keypoints.xy[0].cpu().numpy().tolist()  # Convert keypoints to numpy array
         keypoints_scores = prediction[0].keypoints.conf[0].cpu().numpy().tolist()  # Get keypoints confidence scores
-        print("Keypoints:", keypoints_coords)
-        print("Keypoints confidence scores:", keypoints_scores)
+        # print("Keypoints:", keypoints_coords)
+        # print("Keypoints confidence scores:", keypoints_scores)
 
         for keypoint_coords, keypoint_score in zip(keypoints_coords, keypoints_scores):
             # print(f"Keypoint: {kp}, Score: {kp_score}")

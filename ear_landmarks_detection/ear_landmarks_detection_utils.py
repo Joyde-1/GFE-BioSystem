@@ -5,7 +5,7 @@ import random
 import cv2
 import numpy as np
 # from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error, r2_score, mean_absolute_percentage_error
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error, root_mean_squared_error
 from yaml_config_override import add_arguments # Custom YAML config handling
 from addict import Dict # Dictionary-like class that allows attribute access
 import yaml # YAML parsing

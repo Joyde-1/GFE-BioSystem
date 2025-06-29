@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # 'face'
     # 'ear_dx'
     # 'ear_sx'
-    biometric_trait = 'ear_sx'
+    biometric_trait = 'ear_sx'  # Change this to 'face', 'ear_dx', or 'ear_sx' as needed
 
     # ••••••••••••••••••••••
     # •• Load config file ••

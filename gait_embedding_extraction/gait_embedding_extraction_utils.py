@@ -1,23 +1,20 @@
-import torch
+import numpy as np
 import os
 import sys
 import random
-import numpy as np
-from sklearn.manifold import TSNE
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error, r2_score, mean_absolute_percentage_error
-from yaml_config_override import add_arguments # Custom YAML config handling
-from addict import Dict # Dictionary-like class that allows attribute access
+import torch
+import torch.nn.functional as F
 import yaml # YAML parsing
+from yaml_config_override import add_arguments # Custom YAML config handling
+from typing import List, Tuple
+from addict import Dict # Dictionary-like class that allows attribute access
 from pathlib import Path  # Object-oriented filesystem paths
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
 try:
-    from gait_embedding_extraction.model_class.gait_stgcn_trans import GaitSTGCNModel
-    from gait_embedding_extraction.gait_embedding_extraction_plots import plot_tsne
+    from gait_embedding_extraction.model_class.gait_model import GaitModel
 except ModuleNotFoundError:
-    from model_class.gait_stgcn_trans import GaitSTGCNModel
-    from gait_embedding_extraction_plots import plot_tsne
+    from model_class.gait_model import GaitModel
 
 
 def load_config(my_config_path):
@@ -157,14 +154,12 @@ def select_device(gait_embedding_extraction_config):
 
 def select_model(gait_embedding_extraction_config, device):
     """
-    Initializes and returns a model based on the configuration settings and the specified number of input features.
+    Initializes and returns a model based on the configuration settings.
 
     Parameters
     ----------
     config : dict
         Configuration dictionary with parameters for the model.
-    n_features : int
-        Number of input features the model should handle.
 
     Returns
     -------
@@ -175,33 +170,14 @@ def select_model(gait_embedding_extraction_config, device):
     ------
     SystemExit
         If the specified model name is not supported.
-
-    Notes
-    -----
-    Currently supports 'cnn' model type as specified in the configuration. If an unsupported model
-    type is provided, the function will terminate the program.
     """
 
     model = None
 
     # Check the model type specified in the configuration and initialize accordingly    
-    if gait_embedding_extraction_config.training.model_name == 'stgcn_trans':
-        model = GaitSTGCNModel(
-            num_classes=gait_embedding_extraction_config.data.num_classes,
-            pretrained_stgcn_path=f"{gait_embedding_extraction_config.training.checkpoints_dir}/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d_20221129-484a394a.pth",
-            device=device,
-            emb_dim=gait_embedding_extraction_config.model.embedding_dim,
-            transformer_layers=gait_embedding_extraction_config.model.num_transformer_layers,
-            transformer_heads=gait_embedding_extraction_config.model.num_transformer_heads,
-            transformer_ffn_dim=gait_embedding_extraction_config.model.transformer_ffn_dim,
-            dropout=gait_embedding_extraction_config.model.dropout
-        )
-
-        # Freeze parziale dei primi blocchi ST-GCN
-        for param in model.stgcn1.parameters():
-            param.requires_grad = False
-        for param in model.stgcn2.parameters():
-            param.requires_grad = False
+    if gait_embedding_extraction_config.training.model_name == 'gait_model':
+        model = GaitModel(gait_embedding_extraction_config)
+        model.to(device)
 
     # If no valid model type is specified, print an error message and exit
     if model is None:
@@ -210,119 +186,83 @@ def select_model(gait_embedding_extraction_config, device):
     
     return model
 
-# def compute_metrics(predictions, references):
-#     """
-#     Computes regression metrics: MAE and RMSE.
+def _pairwise_cosine(x: torch.Tensor) -> torch.Tensor:
+    x = torch.nn.functional.normalize(x, dim=1)
+    return x @ x.t()
 
-#     Parameters
-#     ----------
-#     predictions : list or array-like
-#         Predicted ear landmarks list by the model.
-#     references : list or array-like
-#         Actual ear landmarks list from the dataset.
+def _compute_far_frr(embeddings: torch.Tensor, labels: torch.Tensor, far_target: float = 0.01) -> Tuple[float, float, float, float]:
+    """Compute EER and FAR / FRR at a given FAR target.
 
-#     Returns
-#     -------
-#     dict
-#         Dictionary containing computed metrics: MAE and RMSE.
-#     """
-#     predictions = np.array(predictions)
-#     references = np.array(references)
+    Parameters
+    ----------
+    embeddings : (N, C) tensor (need not be normalised)
+    labels     : (N,)   tensor of ints
+    far_target : float  target FAR (e.g. 0.01 → 1 %)
 
-#     # mae = mean_absolute_error(references, predictions)
-#     # mse = mean_squared_error(references, predictions)
-#     # rmse = root_mean_squared_error(references, predictions)
-#     # r2 = r2_score(references, predictions)
-#     # mape = mean_absolute_percentage_error(references, predictions)
-
-#     accuracy = accuracy_score(references, predictions)
-#     f1 = f1_score(references, predictions, average='macro')
-#     precision = precision_score(references, predictions, average='macro')
-#     recall = recall_score(references, predictions, average='macro')
-
-#     return {
-#         'accuracy': accuracy,
-#         'f1': f1,
-#         'precision': precision,
-#         'recall': recall
-#     }
-    
-#     # return {
-#     #     'mae': mae,
-#     #     'mse': mse,
-#     #     'rmse': rmse,
-#     #     'r2': r2,
-#     #     'mape': mape
-#     # }
-
-def compute_distance_matrix(embeddings: np.ndarray, metric: str = "euclidean") -> np.ndarray:
+    Returns
+    -------
+    eer      : float
+    far_at   : float  FAR at the threshold that first drops below `far_target`
+    frr_at   : float  FRR at the *same* threshold
+    thr      : float  similarity threshold used
     """
-    Calcola la matrice di distanza tra tutti gli embeddings.
-    Input:
-      - embeddings: array di shape (N, D)
-      - metric: "euclidean" (default) o "cosine"
-    Output:
-      - dist_matrix: array (N, N) delle distanze
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1)
+    sim = _pairwise_cosine(embeddings)
+
+    # Upper‑triangular masks (exclude self‑pairs)
+    N = sim.size(0)
+    triu = torch.triu(torch.ones_like(sim, dtype=torch.bool), diagonal=1)
+    same = labels.view(-1, 1).eq(labels.view(1, -1))
+    genuine = sim[same & triu]
+    imposter = sim[(~same) & triu]
+
+    scores = torch.cat([genuine, imposter])
+    y_true = torch.cat([torch.ones_like(genuine), torch.zeros_like(imposter)])
+
+    scores_sorted, idx = torch.sort(scores, descending=True)
+    y_sorted = y_true[idx]
+
+    cum_true = torch.cumsum(y_sorted, 0)
+    cum_false = torch.cumsum(1 - y_sorted, 0)
+    P = genuine.numel()
+    N_neg = imposter.numel()
+
+    frr = (P - cum_true).float() / P  # False Rejection
+    far = cum_false.float() / N_neg   # False Acceptance
+
+    # Equal Error Rate
+    diff = torch.abs(far - frr)
+    eer_idx = torch.argmin(diff)
+    eer = ((far[eer_idx] + frr[eer_idx]) / 2).item()
+
+    # FAR @ target
+    try:
+        thr_idx = (far <= far_target).nonzero(as_tuple=True)[0][0]
+    except IndexError:
+        thr_idx = -1  # take lowest threshold
+    far_at = far[thr_idx].item()
+    frr_at = frr[thr_idx].item()
+    thr = scores_sorted[thr_idx].item()
+
+    return eer, far_at, frr_at, thr
+
+def compute_metrics(embeddings, labels):
     """
-    if metric not in ("euclidean", "cosine"):
-        raise ValueError("Metric must be 'euclidean' or 'cosine'")
-
-    if metric == "euclidean":
-        # torch.cdist gestisce efficacemente l'operazione se convertiamo a tensor
-        emb_tensor = torch.from_numpy(embeddings)
-        dists = torch.cdist(emb_tensor, emb_tensor, p=2.0)
-        return dists.numpy()
-
-    # cosine distance = 1 - cosine similarity
-    emb_norm = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-9)
-    sim_matrix = np.dot(emb_norm, emb_norm.T)
-    cos_dist = 1.0 - sim_matrix
-    return cos_dist
-
-
-def compute_intra_inter_distances(embeddings: np.ndarray, labels: np.ndarray) -> tuple:
+    Computes various metrics based on embeddings and labels.
     """
-    Calcola le distanze medie intra-classe e inter-classe.
-    Input:
-      - embeddings: array (N, D)
-      - labels:     array (N,)
-    Output: (avg_intra_dist, avg_inter_dist)
+
+    eer, far_at, frr_at, thr = _compute_far_frr(embeddings, labels, far_target=0.01)
+
+    return {
+        'EER': eer,
+        'FAR@1%': far_at,
+        'FRR@1%': frr_at,
+        'threshold': thr
+    }
+
+def evaluate(gait_embedding_extraction_config, model, dataloader, device, epoch, experiment):
     """
-    N = embeddings.shape[0]
-    # Pre-calcoliamo la matrice di distanza euclidea
-    dist_matrix = compute_distance_matrix(embeddings, metric="euclidean")
-
-    intra_dists = []
-    inter_dists = []
-
-    for i in range(N):
-        for j in range(i + 1, N):
-            if labels[i] == labels[j]:
-                intra_dists.append(dist_matrix[i, j])
-            else:
-                inter_dists.append(dist_matrix[i, j])
-
-    if len(intra_dists) > 0:
-        avg_intra = float(np.mean(intra_dists))
-    else:
-        avg_intra = 0.0
-
-    if len(inter_dists) > 0:
-        avg_inter = float(np.mean(inter_dists))
-    else:
-        avg_inter = 0.0
-
-    return avg_intra, avg_inter
-
-def compute_tsne(gait_embedding_extraction_config, all_embeddings, all_labels, epoch):
-    tsne = TSNE(n_components=2, perplexity=30, init='pca', random_state=42)
-    embs_2d = tsne.fit_transform(all_embeddings)
-
-    plot_tsne(gait_embedding_extraction_config, embs_2d, all_labels, epoch)
-
-def evaluate(gait_embedding_extraction_config, model, dataloader, arcface_criterion, triplet_criterion, device, epoch):
-    """
-    Evaluates a model using the given DataLoader and loss criterion.
+    Evaluates a model using the given DataLoader.
 
     Parameters
     ----------
@@ -330,8 +270,6 @@ def evaluate(gait_embedding_extraction_config, model, dataloader, arcface_criter
         The model to be evaluated.
     dataloader : DataLoader
         DataLoader containing the validation or test dataset.
-    criterion : loss function
-        The loss function used to compute the model's loss.
     device : torch.device
         The device tensors will be sent to before model evaluation.
 
@@ -344,57 +282,48 @@ def evaluate(gait_embedding_extraction_config, model, dataloader, arcface_criter
     model.eval()
 
     running_loss = 0.0
-    running_accuracy = 0.0
-    num_samples = 0
+    correct = 0
+    total = 0
 
-    # List to store embeddings
-    all_ambeddings = []
-    
-    # List to store labels
-    all_labels = []
+    embeddings_list: List[torch.Tensor] = []
+    labels_list: List[torch.Tensor] = []
     
     with torch.no_grad():
         for batch in dataloader:
             keypoints_sequences = batch['keypoints_sequence'].to(device)
-            labels = batch['label'].to(device)
+            labels = batch['label'].to(device)  # (B,)
             
-            # Forward: otteniamo embedding e logit
-            embeddings, logits = model(keypoints_sequences, labels)  # embeddings: (B, emb_dim), logits: (B, num_classes)
+            # Forward pass
+            embeddings, logits, center_loss = model(keypoints_sequences, labels)
 
-            # ArcFace loss
-            loss_arcface = arcface_criterion(embeddings, labels, model.classifier.weight)
+            ce_loss = model.ce_loss(logits, labels)  # CrossEntropy Loss
 
-            # Triplet loss
-            loss_triplet = triplet_criterion(embeddings, labels)
-
-            loss = gait_embedding_extraction_config.loss_function.triplet.lambda_triplet * loss_triplet + (1 - gait_embedding_extraction_config.loss_function.triplet.lambda_triplet) * loss_arcface
-
-            preds = torch.argmax(logits, dim=1)
-            correct = (preds == labels).sum().item()
-            accuracy = correct / labels.size(0)
+            loss = ce_loss + center_loss  # Total loss
 
             # Update running loss
-            B = labels.size(0)
-            running_loss += loss.item() * B
-            running_accuracy += accuracy * B
-            num_samples += B
+            running_loss += loss.item()
 
-            all_ambeddings.append(embeddings.cpu())
-            all_labels.append(labels.cpu())
+            embeddings_list.append(F.normalize(embeddings, dim=1).cpu())
+            labels_list.append(labels.cpu())
+
+            pred = logits.argmax(dim=1)  # Predicted labels
+            total += labels.size(0)  # Total samples
+            correct += (pred == labels).sum().item()  # Count correct predictions
             
-    val_metrics = {}
-    val_metrics['loss'] = running_loss / num_samples
-    val_metrics['accuracy'] = running_accuracy / num_samples
+    # After collecting all embeddings and labels:
+    embeddings_list = torch.cat(embeddings_list, dim=0)
+    labels_list = torch.cat(labels_list, dim=0)
 
-    all_ambeddings = torch.cat(all_ambeddings, dim=0).numpy()  # (N, emb_dim)
-    all_labels = torch.cat(all_labels, dim=0).numpy()  # (N,)
+    val_metrics = compute_metrics(embeddings_list, labels_list)
+    val_metrics['loss'] = running_loss / len(dataloader)
+    val_metrics['accuracy'] = 100.0 * correct / total
 
-    # Calcola le distanze intra e inter-classe
-    avg_intra_dist, avg_inter_dist = compute_intra_inter_distances(all_ambeddings, all_labels)
-
-    val_metrics['avg_intra_dist'] = avg_intra_dist
-    val_metrics['avg_inter_dist'] = avg_inter_dist
-
-    compute_tsne(gait_embedding_extraction_config, all_ambeddings, all_labels, epoch)
+    # Loggare le metriche di validazione su Comet.ml
+    experiment.log_metric("val_loss", val_metrics['loss'], epoch=epoch)
+    experiment.log_metric("val_accuracy", val_metrics['accuracy'], epoch=epoch)
+    experiment.log_metric("val_EER", val_metrics['EER'], epoch=epoch)
+    experiment.log_metric("val_FAR@1%", val_metrics['FAR@1%'], epoch=epoch)
+    experiment.log_metric("val_FRR@1%", val_metrics['FRR@1%'], epoch=epoch)
+    experiment.log_metric("val_threshold", val_metrics['threshold'], epoch=epoch)
 
     return val_metrics
