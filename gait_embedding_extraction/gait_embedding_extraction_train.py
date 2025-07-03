@@ -169,8 +169,6 @@ def prepare_training_process(gait_embedding_extraction_config, model, train_dl):
     else:
         raise ValueError(f"Unknown scheduler name: {gait_embedding_extraction_config.training.scheduler_name}")
 
-    # scheduler = None
-
     return optimizer, scheduler
 
 def train_one_epoch(gait_embedding_extraction_config, model, dataloader, optimizer, scheduler, device, epoch, experiment):
@@ -208,23 +206,6 @@ def train_one_epoch(gait_embedding_extraction_config, model, dataloader, optimiz
 
     embeddings_list: List[torch.Tensor] = []
     labels_list: List[torch.Tensor] = []
-
-    # batch = next(iter(dataloader))
-    # keypoints_sequences = batch['keypoints_sequence'].to(device)
-    # labels              = batch['label'].to(device)
-
-    # for step in range(200):
-    #     optimizer.zero_grad()
-    #     emb, logits, center_loss = model(keypoints_sequences, labels)
-    #     ce = model.ce_loss(logits, labels)
-    #     loss = ce + center_loss
-    #     loss.backward()
-    #     optimizer.step()
-
-    #     if step % 20 == 0:
-    #         pred = logits.argmax(1)
-    #         acc  = (pred == labels).float().mean().item() * 100
-    #         print(f"iter {step:3d} | loss {loss.item():.3f} | acc {acc:.1f}%")
     
     # Iterate over batches
     for step, batch in enumerate(tqdm(dataloader, desc=f"Training Epoch {epoch+1}")):
@@ -527,11 +508,6 @@ if __name__ == "__main__":
 
     # Select model
     model = select_model(gait_embedding_extraction_config, device)
-
-    # from torch import nn
-    # model.head = nn.Linear(model.backbone.proj.out_features,
-    #                     gait_embedding_extraction_config.data.num_classes).to(device)
-    # model.ce_loss = nn.CrossEntropyLoss()
 
     experiment.set_model_graph(str(model))
 

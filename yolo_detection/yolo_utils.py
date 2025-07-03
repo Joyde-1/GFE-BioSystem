@@ -222,8 +222,6 @@ def plot_inferences(yolo_detection_config, biometric_trait, model, device):
 
     images_path = os.path.join(yolo_detection_config.save_data_splitted_path, "splitted database", biometric_trait, "test", "images")
     bounding_boxes_path = os.path.join(yolo_detection_config.save_data_splitted_path, "splitted database", biometric_trait, "test", "labels")
-    # images_path = os.path.join(detection_yolo_config.data_dir, biometric_trait)
-    # bounding_boxes_path = os.path.join(detection_yolo_config.bounding_boxes_dir, biometric_trait)
 
     if not os.path.exists(images_path):
         raise FileNotFoundError(f"Directory {images_path} not found.")
@@ -313,11 +311,5 @@ def plot_inferences(yolo_detection_config, biometric_trait, model, device):
             prediction_image = prediction[0].plot()
 
             prediction_image = cv2.cvtColor(prediction_image, cv2.COLOR_BGR2RGB)
-
-            # Process results list
-            # boxes = prediction.boxes  # Boxes object for bounding box outputs
-            # masks = prediction.masks  # Masks object for segmentation masks outputs
-            # prediction.show()  # display to screen
-            # prediction.save(filename="result.jpg")  # save to disk
 
             plot_prediction(yolo_detection_config, biometric_trait, reference_image, prediction_image, acquisition_name)

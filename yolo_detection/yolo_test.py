@@ -29,7 +29,7 @@ def prepare_data(yolo_detection_config, biometric_trait):
     prepare_data = PrepareData(yolo_detection_config, biometric_trait)
 
     # Load and process training, validation and test datasets
-    prepare_data.prepare_data()
+    # prepare_data.prepare_data()
 
     print(f"{biometric_trait} images and bounding boxes processed correctly. \n\n")
 
@@ -88,11 +88,6 @@ if __name__ == '__main__':
     # Set device
     device = select_device(yolo_detection_config)
     print(f"Using device: {device} \n\n\n")
-
-    # # Get number of workers in this pc
-    # num_workers = get_num_workers()
-
-    # print(f"Number of worker threads available on this pc: {num_workers} \n\n\n")
 
     # Load model weights
     model = load_model(yolo_detection_config)

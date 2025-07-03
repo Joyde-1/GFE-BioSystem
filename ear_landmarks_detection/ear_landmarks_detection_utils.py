@@ -14,10 +14,10 @@ from tqdm import tqdm
 from PyQt6.QtWidgets import QApplication, QFileDialog
 
 try:
-    from ear_landmarks_detection.model_class.cnn import MobileNetV2EarLandmarks, ResNet50EarLandmarks, ResNet18EarLandmarks
+    from ear_landmarks_detection.model_class.cnn import ResNet18EarLandmarks
     from ear_landmarks_detection.ear_landmarks_detection_plots import plot_prediction, plot_reference_vs_prediction
 except ModuleNotFoundError:
-    from model_class.cnn import MobileNetV2EarLandmarks, ResNet50EarLandmarks, ResNet18EarLandmarks
+    from model_class.cnn import ResNet18EarLandmarks
     from ear_landmarks_detection_plots import plot_prediction, plot_reference_vs_prediction
 
 
@@ -186,12 +186,8 @@ def select_model(ear_landmarks_detection_config):
     model = None
 
     # Check the model type specified in the configuration and initialize accordingly    
-    if ear_landmarks_detection_config.training.model_name == 'mobilenetv2':
-        model = MobileNetV2EarLandmarks()
     if ear_landmarks_detection_config.training.model_name == 'resnet18':
         model = ResNet18EarLandmarks()
-    if ear_landmarks_detection_config.training.model_name == 'resnet50':
-        model = ResNet50EarLandmarks()
 
     # If no valid model type is specified, print an error message and exit
     if model is None:
@@ -344,11 +340,6 @@ def plot_inferences(ear_landmarks_detection_config, test_images, reference_landm
         x_inner_ref *= width
         y_inner_ref *= height
 
-        # x1_ref = int(x_center_ref - box_width_ref / 2)
-        # y1_ref = int(y_center_ref - box_height_ref / 2)
-        # x2_ref = int(x_center_ref + box_width_ref / 2)
-        # y2_ref = int(y_center_ref + box_height_ref / 2)
-
         # Disegna i landmarks reference sull'immagine
         cv2.circle(test_image, (int(x_top_ref), int(y_top_ref)), radius=3, color=(0, 255, 0), thickness=-1)
         cv2.circle(test_image, (int(x_bottom_ref), int(y_bottom_ref)), radius=3, color=(0, 255, 0), thickness=-1)
@@ -370,11 +361,6 @@ def plot_inferences(ear_landmarks_detection_config, test_images, reference_landm
         y_outer_pred *= height
         x_inner_pred *= width
         y_inner_pred *= height
-
-        # x1_pred = int(x_center_pred - box_width_pred / 2)
-        # y1_pred = int(y_center_pred - box_height_pred / 2)
-        # x2_pred = int(x_center_pred + box_width_pred / 2)
-        # y2_pred = int(y_center_pred + box_height_pred / 2)
 
         # Disegna i landmarks predetti sull'immagine
         cv2.circle(test_image, (int(x_top_pred), int(y_top_pred)), radius=3, color=(0, 0, 255), thickness=-1)

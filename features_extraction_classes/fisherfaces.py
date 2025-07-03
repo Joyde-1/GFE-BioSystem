@@ -42,19 +42,10 @@ class FisherFaceExtractor:
 		images = [image for subject in subjects.values() for image in subject['template']]
 		
 		print("Shape di una image:", images[0].shape)
-
-		# if self._config.features_extraction.fisherfaces.scaler_type != None:
-		# 	images = self._scale_images(images)
-		# else:
-		# 	if len(images[0].shape) == 1:  # Se è un array 1D (face template)
-		# 		images = np.array([image.reshape(1, -1) for image in images])		# Rendi 2D con shape (1, 640)
-		# 	else:  # Se è un array 2D (iris templates)
-		# 		images = np.array([image.flatten().reshape(1, -1) for image in images])	# Appiattisci
 		
 		images = self._scale_images(images)
 
 		# Convertiamo la lista in un array numpy di forma (n_samples, n_features)
-		# return np.vstack(images)
 		return np.array(images)
 
 	def _prepare_subjects_ID(self, subjects):
@@ -115,8 +106,6 @@ class FisherFaceExtractor:
 		print("n_components:", self.n_components)
 		
 		# Creiamo ed addestriamo il modello LDA.
-		# Uso il solver 'eigen' per poter accedere ai coefficienti (coef_) successivamente.
-		# self._lda = LinearDiscriminantAnalysis(n_components=self.n_components, solver='eigen', shrinkage='auto')
 		self._lda = LinearDiscriminantAnalysis(n_components=self.n_components)
 		self._lda.fit(self.images, self.subjects_ID)
 
@@ -135,8 +124,6 @@ class FisherFaceExtractor:
 		if self._lda is None:
 			raise Exception("Il modello LDA non è stato addestrato. Esegui il metodo train_lda() prima. \n")
 		
-		# print("CIola")
-		
 		# print("Type type(image): ", type(image))
 		# print("Shape: ", image.shape)
 		
@@ -147,7 +134,6 @@ class FisherFaceExtractor:
 
 		# print("Type type(image[0]): ", type(image[0]))
 		# print("Shape: ", mage[0].shape)
-
 
 		# Appiattisci l'immagine e trasforma con il modello LDA
 		# image = self._scaler.scaling(image)
@@ -177,25 +163,11 @@ class FisherFaceExtractor:
 		fisherface_vector = np.dot(fisherface, self._lda.scalings_.T)  
 
 		# Rimappa la Fisherface alla dimensione dell'immagine originale
-		# fisherface_image = fisherface_vector.reshape((self._config.post_processing.image_size, self._config.post_processing.image_size))
 		fisherface_image = fisherface_vector.reshape((width, height))
 
 		# Normalizza per visualizzazione con cv2
 		fisherface_image = cv2.normalize(fisherface_image, None, 0, 255, cv2.NORM_MINMAX)
 		fisherface_image = np.uint8(fisherface_image)
-
-
-
-		# # Prendi la fisherface corretta dagli autovettori LDA
-		# fisherface_vector = self._lda.scalings_[:, fisherface_index]
-
-		# # Verifica la dimensione dell'immagine e ridimensiona
-		# image_size = self._config.post_processing.image_size
-		# fisherface_vector = fisherface_vector.reshape((image_size, image_size))
-
-		# # Normalizza per cv2.imshow()
-		# fisherface_image = cv2.normalize(fisherface_vector, None, 0, 255, cv2.NORM_MINMAX)
-		# fisherface_image = np.uint8(fisherface_image)
 
 		# Mostra l'immagine della Fisherface
 		if self._config.show_images.features_extracted_image:
@@ -214,5 +186,4 @@ class FisherFaceExtractor:
 		print("Fisher faces: ", type(fisherfaces[0]))
 		print("Fisher faces: ", fisherfaces[0].shape)
 		visual_fisherfaces = [self.extract_visual(fisherface, width, height) for fisherface in fisherfaces]
-		# visual_fisherfaces = [self._lda.scalings_[:, i].reshape((self._config.post_processing.image_size, self._config.post_processing.image_size)) for i in range(len(fisherfaces))]
 		return fisherfaces, visual_fisherfaces

@@ -336,8 +336,6 @@ def training_loop(ear_landmarks_detection_config, model, device, train_dl, val_d
               f"RMSE: {val_metrics['rmse']:.4f}",
               f"R2: {val_metrics['r2']:.4f}",
               f"MAPE: {val_metrics['mape']:.4f} \n", sep="\n")
-        # print(f"Val loss: {val_metrics['loss']:.4f} - Val MAE: {val_metrics['mae']:.4f} - Val MSE: {val_metrics['mse']:.4f}", sep="", end="")
-        # print(f"Val RMSE: {val_metrics['rmse']:.4f} - Val R2: {val_metrics['r2']:.4f} - Val MAPE: {val_metrics['mape']:.4f} \n")
 
         # Loggare le metriche di validazione su Comet.ml
         experiment.log_metric("val_loss", val_metrics['loss'], epoch=epoch)

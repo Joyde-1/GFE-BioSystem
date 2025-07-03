@@ -1,2 +1,2 @@
 # GFE-BioSystem
-Biometric multimodal system based on gait, face and ears
+Biometric multimodal continuous system based on gait, face and ears

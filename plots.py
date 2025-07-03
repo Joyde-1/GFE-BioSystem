@@ -70,21 +70,6 @@ def plot_principal_components(multimodal_config, cumulative_variance_explained, 
     plt.xticks([optimal_components])
     plt.grid(True)
 
-    # pca_plots_dir = os.path.join(multimodal_config.save_path, "multimodal", "plots", "pca")
-
-    # # Crea la directory se non esiste
-    # if not os.path.exists(pca_plots_dir):
-    #     try:
-    #         os.makedirs(pca_plots_dir)
-    #     except OSError as e:
-    #         print(f"Error: {e.strerror}")
-    #         return False
-
-    # pca_plots_path = os.path.join(pca_plots_dir, "pca_cumulative_variance.png")
-
-    # if multimodal_config.save_image.plot_pca_cumulative_variance:
-    #     plt.savefig(pca_plots_path)
-
     if multimodal_config.save_images.plot_pca_cumulative_variance:
         figure_path = path_extractor(multimodal_config, "", "", file_suffix=file_suffix)
         plt.savefig(figure_path)

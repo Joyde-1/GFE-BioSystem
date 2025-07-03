@@ -1,7 +1,4 @@
 import cv2
-import numpy as np
-import os
-import sys
 
 
 try:
@@ -159,56 +156,5 @@ class FacePostProcessing:
             cv2.moveWindow("Resized face image", 0, 400)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
-
-        # # Utilizza CLAHE per un miglioramento locale del contrasto
-        # face_image_equalized = self._apply_clahe(face_image_resized)
-
-        # if self.face_config.show_images.post_processed_face_image:
-        #     cv2.imshow("Equalized face image", face_image_equalized)
-        #     cv2.moveWindow("Equalized face image", 400, 400)
-        #     cv2.waitKey(0)
-        #     cv2.destroyAllWindows()
         
         return face_image_resized, face_image_gray.shape
-
-    # def post_processing_image(self, image, bounding_box):
-
-    #     # Ottieni le dimensioni dell'immagine
-    #     img_h, img_w, _ = image.shape
-
-    #     x_min = int(bounding_box[0] * img_w)
-    #     y_min = int(bounding_box[1] * img_h)
-    #     x_max = int(bounding_box[2] * img_w)
-    #     y_max = int(bounding_box[3] * img_h)
-
-    #     bounding_box = [x_min, y_min, x_max, y_max]
-        
-    #     # Ritaglia l'area del volto dall'immagine originale
-    #     face_image = image[y_min:y_max, x_min:x_max]
-
-    #     if self.face_config.show_images.post_processed_face_image:
-    #         cv2.imshow("Cropped face image", face_image)
-    #         cv2.moveWindow("Cropped face image", 0, 0)
-    #         # cv2.waitKey(0)
-    #         # cv2.destroyAllWindows()
-        
-    #     # Converti in scala di grigi
-    #     image = self._bgr_to_gray(image.copy())
-    #     face_image_gray = self._bgr_to_gray(face_image)
-
-    #     if self.face_config.show_images.post_processed_face_image:
-    #         cv2.imshow("Gray face image", face_image_gray)
-    #         cv2.moveWindow("Gray face image", 400, 0)
-    #         cv2.waitKey(0)
-    #         cv2.destroyAllWindows()
-
-    #     # Ridimensiona l'immagine a una dimensione fissa
-    #     face_image_resized = self._resize_image(face_image_gray)
-
-    #     if self.face_config.show_images.post_processed_face_image:
-    #         cv2.imshow("Resized face image", face_image_resized)
-    #         cv2.moveWindow("Resized face image", 0, 400)
-    #         cv2.waitKey(0)
-    #         cv2.destroyAllWindows()
-        
-    #     return face_image_resized, face_image_gray.shape

@@ -8,34 +8,6 @@ class Matching:
 
     def _euclidean_distance(self, template1, template2):
         return np.linalg.norm(template1 - template2)
-
-    def _chi_square(self, template1, template2):
-        """
-        Confronta due template biometrici e restituisce una distanza.
-        
-        Parametri:
-            template1 (np.array): primo template (vettore).
-            template2 (np.array): secondo template (vettore).
-        Ritorna:
-            float: distanza (score) tra i due template. Valori minori indicano una maggiore somiglianza.
-        """
-        eps = 1e-10
-
-        return 0.5 * np.sum(((template1 - template2) ** 2) / (template1 + template2 + eps))
-    
-    def _hamming_distance(self, template1, template2):
-        """
-        Confronta due template biometrici e restituisce una distanza.
-        
-        Parametri:
-            template1 (np.array): primo template (vettore).
-            template2 (np.array): secondo template (vettore).
-        Ritorna:
-            float: distanza (score) tra i due template. Valori minori indicano una maggiore somiglianza.
-        """
-        # Assumendo che template1 e template2 siano vettori di bit 0/1
-        # Normalizziamo per la lunghezza
-        return np.sum(template1 != template2) / template1.size
     
     def _cosine_similarity(self, template1, template2):
         # assicuriamoci che siano in forma (1, d)
@@ -78,11 +50,7 @@ class Matching:
         Ritorna:
             float: distanza (score) tra i due template. Valori minori indicano una maggiore somiglianza.
         """
-        if self._config.matching_algorithm == 'chi-square':
-            return self._chi_square(template1, template2)
-        elif self._config.matching_algorithm == 'hamming':
-            return self._hamming_distance(template1, template2)
-        elif self._config.matching_algorithm == 'euclidean':
+        if self._config.matching_algorithm == 'euclidean':
             return self._euclidean_distance(template1, template2)
         elif self._config.matching_algorithm == 'cosine_similarity':
             return self._cosine_similarity(template1, template2)

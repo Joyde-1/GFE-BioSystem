@@ -83,14 +83,6 @@ class PrepareData():
             [6, 8, 'left_leg'], [8, 10, 'left_leg'],
             [7, 9, 'right_leg'], [9, 11, 'right_leg']
         ]
-        # custom_connections = [
-        #     # [0, 1, 'head'], [0, 2, 'head'], [1, 2, 'head'], [1, 3, 'head'], [2, 4, 'head'], [3, 5, 'head'], [4, 6, 'head'],
-        #     [5, 6, 'torso'], [5, 11, 'torso'], [6, 12, 'torso'], [11, 12, 'torso'],
-        #     [5, 7, 'left_arm'], [7, 9, 'left_arm'],
-        #     [6, 8, 'right_arm'], [8, 10, 'right_arm'],
-        #     [11, 13, 'left_leg'], [13, 15, 'left_leg'],
-        #     [12, 14, 'right_leg'], [14, 16, 'right_leg']
-        # ]
         
         # Disegna i keypoints
         num_keypoints = len(keypoints) // dim_keypoints
@@ -111,10 +103,6 @@ class PrepareData():
         # Disegna le connessioni personalizzate
         for conn in custom_connections:
             idx1, idx2, part = conn
-            
-            # Verifica che entrambi i keypoints siano validi
-            # if (idx1 * dim_keypoints + 2 < len(keypoints) and idx2 * dim_keypoints + 2 < len(keypoints) and
-            #     keypoints[idx1 * dim_keypoints + 2] > 0 and keypoints[idx2 * dim_keypoints + 2] > 0):
                 
             pt1 = (int(keypoints[idx1 * dim_keypoints]), int(keypoints[idx1 * dim_keypoints + 1]))
             pt2 = (int(keypoints[idx2 * dim_keypoints]), int(keypoints[idx2 * dim_keypoints + 1]))
@@ -419,14 +407,6 @@ class PrepareData():
         return keypoints_sequences, labels
     
     def _data_splitting(self, keypoints_sequences, labels):
-        # subjects = np.unique(labels)                 # 49 ID
-        # train_subj, val_subj = train_test_split(subjects, test_size=0.2, stratify=subjects)
-        # train_idx = np.isin(labels, train_subj)
-        # val_idx   = np.isin(labels, val_subj)
-
-        # train_set = {k: v[train_idx] for k,v in full_set.items()}
-        # val_set   = {k: v[val_idx]   for k,v in full_set.items()}
-
         # Dividi in train e validation
         train_keypoints_sequences, val_keypoints_sequences, train_labels, val_labels = train_test_split(
             keypoints_sequences, 

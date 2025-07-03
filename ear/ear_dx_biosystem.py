@@ -46,12 +46,6 @@ if __name__ == '__main__':
 
     subjects = {}
 
-    max_width = 0
-    max_height = 0
-
-    widths = []
-    heights = []
-
     post_processed_ear_images = []
 
     for current_index, (image, image_name, image_path) in enumerate(zip(images, image_names, image_paths)):
@@ -89,15 +83,6 @@ if __name__ == '__main__':
 
         post_processed_ear_images.append(post_processed_ear_image)
 
-        widths.append(shape[1])
-        heights.append(shape[0])
-
-        if max_width < shape[1]:
-            max_width = shape[1]
-        
-        if max_height < shape[0]:
-            max_height = shape[0]
-
         if ear_config.save_image.post_processed:
             save_image(ear_config, 'ear_dx', post_processed_ear_image, image_name, 'post_processed_ear_dx_image')
 
@@ -126,47 +111,9 @@ if __name__ == '__main__':
         if ear_config.use_checkpoint:
             save_checkpoint('checkpoint_ear_dx.json', current_index + 1)
 
-    # print("Max width: ", max_width)
-    # print("Max height: ", max_height)
-
-    # mean_width = int(statistics.mean(widths))
-    # mean_height = int(statistics.mean(heights))
-
-    # print("Max width: ", mean_width)
-    # print("Max height: ", mean_height)
-
-    # padded_ear_images = []
-
-    # for post_processed_ear_image in post_processed_ear_images:
-    #     # padded_ear_images.append(post_processing.add_padding(post_processed_ear_image, max_width, max_height))
-    #     # padded_ear_images.append(post_processing.resize_image(post_processed_ear_image, mean_width, mean_height))
-    #     padded_ear_images.append(post_processing.resize_image(post_processed_ear_image, 512, 512))
-
-    # # Itera su subjects
-    # padded_ear_images_index = 0  # Indice per tracciare la posizione nei processed ear images
-
-    # for subject in subjects.keys():
-    #     subjects[subject]['template'] = []
-
-    #     num_acquisitions = len(subjects[subject]['acquisition_name'])
-
-    #     # Aggiungi le padded images al soggetto a blocchi di num_acquisitions
-    #     subjects[subject]['template'].extend(
-    #         padded_ear_images[padded_ear_images_index:padded_ear_images_index + num_acquisitions]
-    #     )
-
-    #     if ear_config.save_image.padded:
-    #         for i in range(num_acquisitions):
-    #             save_image(ear_config, 'ear_dx', padded_ear_images[i + padded_ear_images_index], f"{subject}_{i + 1}", "padded_ear_dx_image")
-
-    #     # Aggiorna l'indice per il prossimo soggetto
-    #     padded_ear_images_index += num_acquisitions
-
     if ear_config.features_extractor == 'fisherface' and not ear_config.features_extraction.fisherfaces.load_model:
         fisherface_extractor = FisherFaceExtractor(ear_config)
 
-        # fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, max_width, max_height)
-        # fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, mean_width, mean_height)
         fisherfaces, visual_fisherfaces = fisherface_extractor.extract_fisherfaces(subjects, ear_config.post_processing.image_size, ear_config.post_processing.image_size)
 
         # Itera su subjects e assegna i templates (fisherfaces)

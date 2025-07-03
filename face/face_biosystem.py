@@ -8,8 +8,6 @@ from data_classes.load_data import LoadData
 from pre_processing.pre_processing import FacePreProcessing
 from yolo_detection.yolo_detection import Yolo
 from post_processing.post_processing import FacePostProcessing
-from features_extraction_classes.lbp import LBP
-from features_extraction_classes.gabor_wavelet import GaborWavelet
 from features_extraction_classes.fisherfaces import FisherFaceExtractor
 from metrics_classes.verification import Verification
 from metrics_classes.recognition_closed_set import RecognitionClosedSet
@@ -37,9 +35,6 @@ if __name__ == '__main__':
     yolo = Yolo(face_config, 'face')
 
     post_processing = FacePostProcessing(face_config)
-
-    lbp = LBP(face_config)
-    gabor_wavelet = GaborWavelet(face_config)
 
     if face_config.features_extraction.fisherfaces.load_model:
         fisherface_extractor = FisherFaceExtractor(face_config)
@@ -93,11 +88,7 @@ if __name__ == '__main__':
         if face_config.save_image.post_processed:
             save_image(face_config, 'face', post_processed_face_image, image_name, 'post_processed_face_image')
 
-        if face_config.features_extractor == 'lbp':
-            face_template, face_template_vis = lbp.extract_lbp_features(post_processed_face_image)
-        elif face_config.features_extractor == 'gabor_wavelet':
-            face_template, face_template_vis = gabor_wavelet.extract_gabor_wavelet_features(post_processed_face_image)
-        elif face_config.features_extractor == 'fisherface' and face_config.features_extraction.fisherfaces.load_model:
+        if face_config.features_extractor == 'fisherface' and face_config.features_extraction.fisherfaces.load_model:
             face_template = fisherface_extractor.extract_fisherface(np.array(post_processed_face_image))
             face_template_vis = fisherface_extractor.extract_visual(face_template, face_config.post_processing.image_size, face_config.post_processing.image_size)
         elif face_config.features_extractor == 'fisherface' and not face_config.features_extraction.fisherfaces.load_model:

@@ -50,9 +50,7 @@ class GaitPreProcessing:
         return cropped, (x, y, x + w, y + h)
     
     def _resize_silhouette(self, frame, color=(127, 127, 127)):
-    # def _resize_silhouette(self, frame, target_size=(256, 192), color=(127, 127, 127)):
         """Ridimensiona frame preservando aspect ratio, poi pad fino a target_size."""
-        # target_size = (target_size[1], target_size[0])  # nota: target=(H,W) per OpenCV
         ih, iw = self._gait_config.pre_processing.frame_height, self._gait_config.pre_processing.frame_width # target_size[1], target_size[0]  # nota: target=(W,H)
         h, w = frame.shape[:2]
         scale = min(iw / w, ih / h)
@@ -85,7 +83,6 @@ class GaitPreProcessing:
 
         # pre_processed_frame = Image.fromarray(pre_processed_frame)
 
-        # return pre_processed_frame, resized
         return resized, pre_processing_params
     
     def pre_processing_keypoints(self, keypoints, pre_processing_params):
@@ -229,72 +226,6 @@ class GaitPreProcessing:
         with open(f'{save_dir}/{frame_name}', 'w') as f:
             for x, y, c in keypoints:
                 f.write(f"{x},{y},{c}\n")
-        # np.savetxt(f'{save_dir}/{frame_name}', keypoints, fmt='%.6f', delimiter=',')
-    
-    # def _normalize_keypoints(self, keypoints):
-    #     """
-    #     Normalizza i keypoints per invarianza alla posizione e scala
-    #     Args:
-    #         keypoints: array (seq_len, 17, 3) o (17, 3)
-    #         method: 'center', 'hip_center', 'bbox'
-    #     """
-    #     if keypoints.ndim == 2:
-    #         keypoints = keypoints[np.newaxis, ...]
-    #         squeeze_output = True
-    #     else:
-    #         squeeze_output = False
-
-    #     normalized = keypoints.copy()
-
-    #     for i in range(len(keypoints)):
-    #         frame_kpts = keypoints[i]
-    #         valid_mask = frame_kpts[:, 2] > 0.1  # confidence > 0.1
-
-    #         if not np.any(valid_mask):
-    #             continue
-
-    #         valid_points = frame_kpts[valid_mask, :2]
-
-    #         if self._gait_config.pre_processing.normalization_method == 'center':
-    #             # Centra rispetto al centroide dei punti validi
-    #             center = np.mean(valid_points, axis=0)
-    #             normalized[i, :, :2] -= center
-
-    #         elif self._gait_config.pre_processing.normalization_method == 'hip_center':
-    #             # # Centra rispetto al punto medio dei fianchi
-    #             # left_hip, right_hip = 11, 12
-    #             # if (frame_kpts[left_hip, 2] > 0.1 and frame_kpts[right_hip, 2] > 0.1):
-    #             #     hip_center = (frame_kpts[left_hip, :2] + frame_kpts[right_hip, :2]) / 2
-    #             #     normalized[i, :, :2] -= hip_center
-    #             # Usa centro dei fianchi come riferimento
-    #             left_hip, right_hip = 11, 12
-    #             if (frame_kpts[left_hip, 2] > 0.1 and frame_kpts[right_hip, 2] > 0.1):
-    #                 hip_center = (frame_kpts[left_hip, :2] + frame_kpts[right_hip, :2]) / 2
-                    
-    #                 # Preserva meglio le informazioni di movimento
-    #                 normalized[i, :, :2] = frame_kpts[:, :2] - hip_center
-                    
-    #                 # Normalizza solo per una scala fissa basata sulla risoluzione dell'immagine
-    #                 scale_factor = 100.0  # Scala fissa
-    #                 normalized[i, :, :2] /= scale_factor
-    #             else:
-    #                 # Fallback: usa centroide
-    #                 center = np.mean(valid_points, axis=0)
-    #                 normalized[i, :, :2] = frame_kpts[:, :2] - center
-    #                 normalized[i, :, :2] /= 100.0
-
-    #         elif self._gait_config.pre_processing.normalization_method == 'bbox':
-    #             # Normalizza rispetto al bounding box
-    #             min_coords = np.min(valid_points, axis=0)
-    #             max_coords = np.max(valid_points, axis=0)
-    #             bbox_size = max_coords - min_coords
-    #             bbox_center = (min_coords + max_coords) / 2
-
-    #             normalized[i, :, :2] -= bbox_center
-    #             if np.max(bbox_size) > 0:
-    #                 normalized[i, :, :2] /= np.max(bbox_size)
-
-    #     return normalized[0] if squeeze_output else normalized
 
     def _normalize_keypoints(self, keypoints):
         """
@@ -356,88 +287,6 @@ class GaitPreProcessing:
         kpts_norm = (kpts - mid_hip[:, None, :]) / scale_seq
 
         return kpts_norm.squeeze(0) if squeeze else kpts_norm
-
-    # def _interpolate_missing_keypoints(self, keypoints):
-    #     """
-    #     Interpola keypoints mancanti in una sequenza temporale
-    #     Args:
-    #         keypoints: array (seq_len, 17, 3)
-    #         method: 'linear', 'cubic', 'forward_fill'
-    #     """
-    #     seq_len, num_joints, _ = keypoints.shape
-    #     interpolated = keypoints.copy()
-
-    #     for joint_idx in range(num_joints):
-    #         for coord_idx in range(2):  # x, y coordinates
-    #             # Trova frame validi (confidence > 0.1)
-    #             valid_mask = keypoints[:, joint_idx, 2] > 0.1
-    #             valid_indices = np.where(valid_mask)[0]
-
-    #             if len(valid_indices) < 2:
-    #                 continue
-
-    #             # Interpola tra punti validi
-    #             valid_values = keypoints[valid_indices, joint_idx, coord_idx]
-
-    #             if self._gait_config.pre_processing.interpolation_method == 'linear':
-    #                 interpolated[:, joint_idx, coord_idx] = np.interp(
-    #                     np.arange(seq_len), valid_indices, valid_values
-    #                 )
-    #                 # Applica smoothing per ridurre il rumore
-    #                 if seq_len > 5:
-    #                     from scipy.ndimage import gaussian_filter1d
-    #                     interpolated[:, joint_idx, coord_idx] = gaussian_filter1d(
-    #                         interpolated[:, joint_idx, coord_idx], sigma=0.5
-    #                     )
-    #             elif self._gait_config.pre_processing.interpolation_method == 'forward_fill':
-    #                 last_valid = valid_values[0]
-    #                 for i in range(seq_len):
-    #                     if valid_mask[i]:
-    #                         last_valid = keypoints[i, joint_idx, coord_idx]
-    #                     interpolated[i, joint_idx, coord_idx] = last_valid
-
-    #     return interpolated
-    
-    # def _pad_or_truncate_sequence(self, keypoints_sequence):
-    #     """
-    #     Adatta sequenze di lunghezza variabile (18-35 frame) a lunghezza fissa
-    #     Args:
-    #         sequence: array (seq_len, 17, 3)
-    #         target_length: lunghezza target (default: 32, compromesso tra 18-35)
-    #         method: 'pad', 'truncate', 'interpolate'
-    #     Returns:
-    #         processed_sequence: array (target_length, 17, 3)
-    #     """
-    #     keypoints_sequence_len = keypoints_sequence.shape[0]
-
-    #     if keypoints_sequence_len == self._gait_config.pre_processing.fixed_length:
-    #         return keypoints_sequence
-
-    #     elif keypoints_sequence_len < self._gait_config.pre_processing.fixed_length:
-    #         # Sequenza troppo corta: padding
-    #         if self._gait_config.pre_processing.add_frame_method == 'pad':
-    #             # Zero padding alla fine
-    #             padding = np.zeros((self._gait_config.pre_processing.fixed_length - keypoints_sequence_len, 17, 3))
-    #             return np.concatenate([keypoints_sequence, padding], axis=0)
-
-    #         elif self._gait_config.pre_processing.add_frame_method == 'reply':
-    #             # Per sequenze corte, replica l'ultimo frame
-    #             reply_needed = self._gait_config.pre_processing.fixed_length - keypoints_sequence_len
-    #             last_frame = keypoints_sequence[-1:].repeat(reply_needed, axis=0)
-    #             return np.concatenate([keypoints_sequence, last_frame], axis=0)
-        
-    #     else:
-    #         # Sequenza troppo lunga: truncate
-    #         if self._gait_config.pre_processing.delete_frame_method == 'truncate':
-    #             # Prendi i primi target_length frame
-    #             return keypoints_sequence[:self._gait_config.pre_processing.fixed_length]
-
-    #         elif self._gait_config.pre_processing.delete_frame_method == 'downsample':
-    #             # Downsample mantenendo informazione temporale
-    #             indices = np.linspace(0, keypoints_sequence_len - 1, self._gait_config.pre_processing.fixed_length, dtype=int)
-    #             return keypoints_sequence[indices]
-
-    #     return keypoints_sequence
 
     def _pad_or_truncate_sequence(self, keypoints_sequence):
         """
@@ -528,17 +377,5 @@ class GaitPreProcessing:
         pre_processed_keypoints = self._normalize_keypoints(np_keypoints_sequence)
         pre_processed_keypoints = self._pad_or_truncate_sequence(pre_processed_keypoints)
         pre_processed_keypoints = self._filter_core_joints(pre_processed_keypoints)
-
-        # pre_processed_keypoints = []
-
-        # if len(keypoints_sequence) >= self._gait_config.pre_processing.fixed_length:
-        #     window = keypoints_sequence[:self._gait_config.pre_processing.fixed_length]
-        # else:
-        #     # pad with zero-keypoints
-        #     padded_keypoints = [[0.0] * len(keypoints_sequence[0]) for _ in range(self._gait_config.pre_processing.fixed_length - len(keypoints_sequence))]
-        #     window = keypoints_sequence + padded_keypoints
-        # pre_processed_keypoints.append(window)
-
-        # pre_processed_keypoints = np.array(pre_processed_keypoints)
 
         return pre_processed_keypoints

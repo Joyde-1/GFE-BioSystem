@@ -36,27 +36,3 @@ training:
   min_delta: 0
   patience: 90
   start_from_epoch: 16
-
-optimizer: 
-  adam:
-    lr: 0.001
-    betas: [0.9, 0.999]
-    eps: 1e-08
-    weight_decay: 0
-
-scheduler:
-  reduce_lr_on_plateau:
-    factor: 0.1 
-    patience: 7
-    threshold: 0.001 
-    threshold_mode: rel
-    cooldown: 1
-    min_lr: 0.00001 
-    eps: 1e-08
-  cosine_annealing_warm_restarts:
-    t_0: 7
-    t_mult: 2
-    eta_min: 0.00001
-    last_epoch: -1
-  warm_up:
-    warmup_ratio: 0.1

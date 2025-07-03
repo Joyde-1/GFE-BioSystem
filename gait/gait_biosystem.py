@@ -6,7 +6,6 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_classes.load_data import LoadData
 from pre_processing.pre_processing import GaitPreProcessing
-# from pre_processing.gait_keypoints_detection import GaitKeypointsDetection
 from yolo_pose_detection.yolo_pose_detection import YoloPose
 from features_extraction.gait_embedding_extraction import GaitEmbeddingExtraction
 from metrics_classes.verification import Verification
@@ -27,8 +26,6 @@ if __name__ == '__main__':
 
     pre_processing = GaitPreProcessing(gait_config)
 
-    # gait_keypoints_detector = GaitKeypointsDetection(gait_config)
-
     gait_yolo_pose_detector = YoloPose(gait_config, 'gait')
 
     gait_embedding_extractor = GaitEmbeddingExtraction(gait_config)
@@ -39,7 +36,6 @@ if __name__ == '__main__':
 
     subjects = {}
 
-    # for current_index, (frame_sequence, frame_sequence_name, frame_sequence_path) in enumerate(zip(frame_sequences, frame_sequences_names, frame_sequences_paths)):
     for current_index, (frame_sequence, frame_sequence_name, frame_sequence_path, subject_ids, sequence_names, frame_names) in enumerate(zip(frame_sequences, frame_sequences_names, frame_sequences_paths, all_subject_ids, all_sequence_names, all_frame_names)):
         # Pre-Processing and Segmentation phases
         # -----------------------------------------------------------
@@ -78,9 +74,6 @@ if __name__ == '__main__':
         # Gait Keypoints Detection phase
         # -----------------------------------------------------------
         for i, (pre_processed_frame, pre_processing_params, frame, subject_id, sequence_name, frame_name) in enumerate(zip(pre_processed_frame_sequence, pre_processing_params_sequence, frame_sequence, subject_ids, sequence_names, frame_names)):
-        # for i, (pre_processed_frame, pre_processing_params) in enumerate(zip(pre_processed_frame_sequence, pre_processing_params_sequence)):
-            # keypoints, frame_with_detected_keypoints = gait_keypoints_detector.detect_keypoints(pre_processed_frame)
-
             pre_processed_frame_path = path_extractor(gait_config, 'gait', frame_sequence_name, 'pre_processed_frame_sequence', i + 1)
             keypoints, frame_with_detected_keypoints = gait_yolo_pose_detector.predict_keypoints(pre_processed_frame_path)
 

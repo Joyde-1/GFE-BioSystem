@@ -1,9 +1,6 @@
 # Data paths
 path: /Users/giovanni/Desktop/Tesi di Laurea/splitted_yolo_pose_database/gait
 
-# train: train/images
-# val: val/images
-# test: test/images
 train: train/images
 val: val/images
 test: test/images
@@ -25,36 +22,10 @@ test: test/images
 #   val: val/keypoints/coco_annotations.json
 #   test: test/keypoints/coco_annotations.json
 
-# Number of classes
-# nc: 1
-
 # Classes names
 names: 
   0: "person"
 
-# kpt: True
-
-# keypoints: 17
-# skeleton: [[15, 13], [13, 11], [16, 14], [14, 12], [11, 12], [5, 11], [6, 12], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [1, 2], [0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6]]
 kpt_shape: [17, 3]
-
-# flip_idx:
-#   - [0, 0]
-#   - [1, 1]
-#   - [2, 2]
-#   - [3, 3]
-#   - [4, 4]
-#   - [5, 5]
-#   - [6, 6]
-#   - [7, 7]
-#   - [8, 8]
-#   - [9, 9]
-#   - [10, 10]
-#   - [11, 11]
-#   - [12, 12]
-#   - [13, 13]
-#   - [14, 14]
-#   - [15, 15]
-#   - [16, 16]
 
 flip_idx: [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]

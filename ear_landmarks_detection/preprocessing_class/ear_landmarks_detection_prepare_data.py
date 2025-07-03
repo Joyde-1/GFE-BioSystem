@@ -104,10 +104,6 @@ class PrepareData():
         # Estrai le informazioni dell'immagine
         width = data['imageWidth']
         height = data['imageHeight']
-
-        # # Definisci il target di ridimensionamento (es. image_size x image_size)
-        # scale_x = self._ear_landmarks_detection_config.data.image_size / width
-        # scale_y = self._ear_landmarks_detection_config.data.image_size / height
         
         # Definisci l'ordine dei keypoint che vuoi utilizzare
         # In questo esempio consideriamo quattro keypoint: "top", "bottom", "outer", "inner"
@@ -125,19 +121,13 @@ class PrepareData():
             if point is None:
                 raise ValueError(f"Annotazione mancante per il keypoint: {kp} and {image_name}")
             x, y = point
-            # # Applica il ridimensionamento: scala le coordinate
-            # x_scaled = x * scale_x
-            # y_scaled = y * scale_y
 
             # Normalize x and y coords
             x_norm = x / width
             y_norm = y / height
-            # Aggiungi [x, y]
-            # keypoints.extend([x_scaled, y_scaled])
+
             keypoints.append(x_norm)
             keypoints.append(y_norm)
-            # keypoints.append(x)
-            # keypoints.append(y)
         
         return keypoints
     
@@ -151,13 +141,6 @@ class PrepareData():
 
             x = (x - x_min) / bounding_box_w
             y = (y - y_min) / bounding_box_h
-
-            # x = x * orig_image_w
-            # y = y * orig_image_h
-
-            # # Normalize x and y coords
-            # x_norm = x / self._ear_landmarks_detection_config.data.image_size
-            # y_norm = y / self._ear_landmarks_detection_config.data.image_size
 
             remapped_landmarks.extend([x, y])
 
@@ -199,21 +182,6 @@ class PrepareData():
         landmarks = self._remap_landmarks(landmarks, x_min, y_min, bounding_box_w, bounding_box_h, orig_image_h, orig_image_w)
 
         image = cv2.resize(image, (self._ear_landmarks_detection_config.data.image_size, self._ear_landmarks_detection_config.data.image_size), interpolation=cv2.INTER_AREA)
-
-        # # Crea una copia dell'immagine per non modificarla direttamente
-        # image_with_landmarks = image.copy()
-        
-        # # Itera sui landmark (assumendo coppie di coordinate)
-        # for i in range(0, len(landmarks), 2):
-        #     x = int(landmarks[i] * self._ear_landmarks_detection_config.data.image_size)
-        #     y = int(landmarks[i+1] * self._ear_landmarks_detection_config.data.image_size)
-        #     # Disegna un cerchio pieno di colore verde, raggio 5 pixel
-        #     cv2.circle(image_with_landmarks, (x, y), radius=2, color=(0, 255, 0), thickness=-1)
-        
-        # # Mostra l'immagine
-        # cv2.imshow("Landmarks", image_with_landmarks)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
 
         return image, landmarks
         

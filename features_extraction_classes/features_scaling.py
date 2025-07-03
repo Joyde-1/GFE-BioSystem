@@ -30,17 +30,12 @@ class FeaturesScaling():
                     processed_templates.append(template.flatten().reshape(1, -1))  # Appiattisci in (1, 8192)
             else:
                 processed_templates.append(template.flatten())
-                # if len(template.shape) == 1:  # Se è un array 1D (face template)
-                #     processed_templates.append(template.reshape(1, -1))  # Rendi 2D con shape (1, 640)
-                # else:  # Se è un array 2D (iris templates)
-                #     processed_templates.append(template.flatten().reshape(1, -1))  # Appiattisci in (1, 8192)
 
         if multimodal:
             # Convertire la lista in un array NumPy 2D
             combined_templates_array = np.vstack(processed_templates)
         else:
             # Convertire la lista in un array NumPy 2D
-            # combined_templates_array = np.vstack(processed_templates)
             combined_templates_array = np.array(processed_templates)
 
         print("Forma di templates dopo del np.vstack (o np.array):", combined_templates_array.shape)

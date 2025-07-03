@@ -9,13 +9,13 @@ show_image:
   plot_pca_cumulative_variance: False
 
 save_images:
-  pre_processed: True
-  detected: True
-  post_processed: True
-  features_extracted: True
-  pca_cumulative_variance: True
+  pre_processed: False
+  detected: False
+  post_processed: False
+  features_extracted: False
+  pca_cumulative_variance: False
 
-matching_algorithm: euclidean # euclidean # chi-square #hamming
+matching_algorithm: euclidean 
 
 features_fusion:
   ear_dx: True # False (ear_sx --> True)

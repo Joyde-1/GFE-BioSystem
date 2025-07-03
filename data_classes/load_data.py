@@ -73,9 +73,6 @@ class LoadData:
             '49': [ ... ]
         }
         """
-        # i codici delle sequenze che ci interessano
-        # sequence_names = ['000-00', '000-01', '180-00', '180-01', '015-00']
-        # sequence_names = ['000-00', '000-01', '015-00', '015-01', '030-00'] # , '180-00', '180-01', '015-00']
 
         # Percorso base della cartella dei keypoints
         keypoints_base_dir = os.path.join(config.keypoints_sequences_dir, "00")
@@ -174,62 +171,3 @@ class LoadData:
             print(f"Sequenza {i}: {len(seq)} frame")
 
         return frame_sequences, frame_sequences_names, frame_sequences_paths, all_subject_ids, all_sequence_names, all_frame_names
-
-
-    
-    # def load_frames(self):
-    #     """
-    #     Carica i percorsi di tutte le silhouette per i soggetti da 00001 a 00049
-    #     da tutte le cartelle Silhouette_* disponibili.
-        
-    #     Returns
-    #     -------
-    #     dict
-    #         Dizionario con soggetti come chiavi e liste di percorsi come valori
-    #     """
-    #     silhouette_data = {
-    #         'frame_paths': [],
-    #         'subjects': [],
-    #         'subject_to_paths': {}
-    #     }
-        
-    #     # Cerca tutte le cartelle Silhouette_* nella directory dei dati
-    #     silhouette_dirs = glob.glob(os.path.join(gait_keypoints_detection_config.frames_dir, "Silhouette_*"))
-        
-    #     if not silhouette_dirs:
-    #         raise FileNotFoundError(f"Nessuna directory Silhouette_* trovata in {gait_keypoints_detection_config.frames_dir}")
-        
-    #     # Per ogni cartella Silhouette_*
-    #     for silhouette_dir in silhouette_dirs:
-    #         # print(f"Elaborazione della directory: {silhouette_dir}")
-            
-    #         # Per ogni soggetto da 00001 a 00049
-    #         for subject_num in range(1, 50):   #1, 50
-    #             subject_id = f"{subject_num:05d}"  # Formatta come 00001, 00002, ecc.
-                
-    #             # Cerca tutte le immagini per questo soggetto nella cartella corrente
-    #             subject_pattern = os.path.join(silhouette_dir, subject_id, "*.png")
-    #             subject_files = glob.glob(subject_pattern)
-
-    #             # print("Silhouette files found for subject:", subject_id)
-    #             # print(subject_files)
-                
-    #             # Se abbiamo trovato file per questo soggetto
-    #             for file_path in subject_files:
-    #                 silhouette_data['frame_paths'].append(file_path)
-    #                 silhouette_data['subjects'].append(subject_id)
-                    
-    #                 # Aggiungi al dizionario soggetto -> percorsi
-    #                 if subject_id not in silhouette_data['subject_to_paths']:
-    #                     silhouette_data['subject_to_paths'][subject_id] = []
-                    
-    #                 silhouette_data['subject_to_paths'][subject_id].append(file_path)
-        
-    #     # Verifica che abbiamo trovato dati
-    #     if not silhouette_data['frame_paths']:
-    #         raise FileNotFoundError(f"Nessuna silhouette trovata per i soggetti da 00001 a 00049")
-        
-    #     print(f"Trovate {len(silhouette_data['frame_paths'])} silhouette per {len(silhouette_data['subject_to_paths'])} soggetti")
-    #     print("subjects:", len(silhouette_data['subjects']))
-        
-    #     return silhouette_data

@@ -19,7 +19,6 @@ from features_extraction_classes.features_scaling import FeaturesScaling
 from metrics_classes.verification import Verification
 from metrics_classes.recognition_closed_set import RecognitionClosedSet
 from metrics_classes.recognition_open_set import RecognitionOpenSet
-from matching_classes.matching_score_fusion import MatchingScoreFusion
 from utils import load_config, browse_path, path_extractor, save_image, load_checkpoint, save_checkpoint
 
 # MULTIMODAL CLASSES
@@ -88,7 +87,6 @@ if __name__ == '__main__':
     ear_dx_features_fusion = FeaturesFusionPCA(multimodal_config)
     ear_sx_features_fusion = FeaturesFusionPCA(multimodal_config)
     features_fusion_reduced = FeaturesFusionPCA(multimodal_config)
-    multimodal_score_fusion_matching = MatchingScoreFusion(multimodal_config)
 
     if multimodal_config.use_checkpoint:
         checkpoint = load_checkpoint('checkpoint_multimodal.json')
@@ -909,24 +907,3 @@ if __name__ == '__main__':
     print(f"Throughput: {tps:.4f} probe/sec")
 
     print("")
-
-    #------------------------
-    # THIRD MULTIMODAL SYSTEM
-    #------------------------
-    
-    if multimodal_config.features_fusion.ear_dx:
-        ear_side = 'dx'
-    else:
-        ear_side = 'sx'
-
-    far, fa, t_imp = multimodal_score_fusion_matching.calculate_far(subjects['gait'], subjects['face'], subjects[f'ear_{ear_side}'])
-    frr, fr, t_legit = multimodal_score_fusion_matching.calculate_frr(subjects['gait'], subjects['face'], subjects[f'ear_{ear_side}'])
-    accuracy = multimodal_score_fusion_matching.calculate_accuracy(t_imp, t_legit, fa, fr)
-
-    print("", "Third multimodal score fusion matching metrics:")
-    print(f"FAR: {far:.4f} %")
-    print(f"FRR: {frr:.4f} %")
-    print(f"accuracy: {accuracy:.4f} %")
-
-    multimodal_score_fusion_matching.calculate_roc_and_det(subjects['gait'], subjects['face'], subjects[f'ear_{ear_side}'])
-    multimodal_score_fusion_matching.far_vs_frr(subjects['gait'], subjects['face'], subjects[f'ear_{ear_side}'])

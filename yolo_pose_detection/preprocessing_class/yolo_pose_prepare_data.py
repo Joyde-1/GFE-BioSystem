@@ -232,17 +232,6 @@ class PrepareData():
         x0, y0, x1, y1 = crop_bbox
         remapped = []
         for x, y, c in zip(keypoints[0::3], keypoints[1::3], keypoints[2::3]):
-            # if c > 0:
-            #     # trasla nella ROI
-            #     xr = x - x0
-            #     yr = y - y0
-            #     # scala e pad
-            #     x_new = xr * scale + pad_x
-            #     y_new = yr * scale + pad_y
-            #     remapped.extend([x_new, y_new, c])
-            # else:
-            #     remapped.extend([0, 0, 0])
-            
             # Verifica se il keypoint cade all'interno del bounding box del crop e ha confidenza > 0
             if c > 0 and x >= x0 and x <= x1 and y >= y0 and y <= y1:
                 # trasla nella ROI
@@ -267,22 +256,6 @@ class PrepareData():
             else:
                 # Fuori dal crop o non visibile: rendi c=0
                 remapped.extend([0.0, 0.0, 0.0])
-
-            # # Verifica se il keypoint cade all'interno del bounding box del crop e ha confidenza > 0
-            # if c > 0 and x >= x0 and x <= x1 and y >= y0 and y <= y1:
-            #     # Trasla nelle coordinate del crop
-            #     xr = x - x0
-            #     yr = y - y0
-            #     # Scala e aggiungi pad
-            #     x_new = xr * scale + pad_x
-            #     y_new = yr * scale + pad_y
-            #     # Clamping per rimanere all'interno del range [0, target_size]
-            #     x_new = max(0.0, min(x_new, self._yolo_pose_detection_config.data.image_width))
-            #     y_new = max(0.0, min(y_new, self._yolo_pose_detection_config.data.image_height))
-            #     remapped.extend([x_new, y_new, c])
-            # else:
-            #     # Fuori dal crop o non visibile: rendi c=0
-            #     remapped.extend([0.0, 0.0, 0.0])
         return remapped
     
     def _preprocess_image_and_keypoints(self, frame, keypoints_data, frame_filename):
@@ -295,9 +268,6 @@ class PrepareData():
         ann_id = self._next_ann_id
         self._next_image_id += 1
         self._next_ann_id += 1
-        
-        # Ottieni le dimensioni dell'immagine originale
-        original_height, original_width = frame.shape[:2]
 
         # 1) preprocess + mask
         proc, mask = self._preprocess_silhouette(frame)
@@ -337,13 +307,6 @@ class PrepareData():
         remapped_keypoints = self._remap_keypoints(
             pose_keypoints, crop_bbox, scale, pad_x, pad_y
         )
-
-        # # Aggiungi questo debug:
-        # xs = [remapped_keypoints[i]   for i in range(0, len(remapped_keypoints), 3)  if remapped_keypoints[i+2] > 0]
-        # ys = [remapped_keypoints[i+1] for i in range(0, len(remapped_keypoints), 3)  if remapped_keypoints[i+2] > 0]
-        # print(f"[DEBUG REMAP] Frame {frame_filename}: minX={min(xs):.1f}, maxX={max(xs):.1f}, "
-        #     f"minY={min(ys):.1f}, maxY={max(ys):.1f}, "
-        #     f"crop_bbox={crop_bbox}, scale={scale:.3f}, pad=({pad_x},{pad_y})")
 
         # Debug: ensure exactly 17 keypoints after remapping
         if len(remapped_keypoints) != 17 * 3:
@@ -437,9 +400,6 @@ class PrepareData():
             ]
         }
 
-        # if x_w < 0 or y_min < 0 or bbox_width <= 0 or bbox_height <= 0:
-        #     print(f"[DEBUG] Frame {frame_filename}: remapped first keypoint = ({remapped_keypoints[0]:.1f}, {remapped_keypoints[1]:.1f}), bbox = ({x_min:.1f}, {y_min:.1f}, {bbox_width:.1f}, {bbox_height:.1f})")
-
         return letterboxed, coco_dict
     
     def _visualize_keypoints(self, keypoints_data, frame):
@@ -457,10 +417,6 @@ class PrepareData():
         if "annotations" not in keypoints_data or not keypoints_data["annotations"]:
             print("Nessuna annotazione trovata nei dati dei keypoints")
             return
-        
-        # Ridimensiona il frame alle dimensioni target
-        # frame = cv2.resize(frame, (self._yolo_pose_detection_config.data.image_size, 
-        #                           self._yolo_pose_detection_config.data.image_size))
         
         # Ottieni i keypoints dalla prima annotazione
         annotation = keypoints_data["annotations"][0]
@@ -575,15 +531,6 @@ class PrepareData():
             import sys  # oppure return letterboxed, None, e poi non scrivi il file
             sys.exit(1)
 
-        # # Dopo aver ricavato: x_min, y_min, box_w, box_h e i kpt_triplets:
-        # all_coords = [x_min, y_min, x_min+box_w, y_min+box_h] + kpt_xyv_norm
-        # print(f"[DEBUG TXT PRE-NORM] {image_info['file_name']}: minCoord={min(all_coords):.3f}, "
-        #     f"maxCoord={max(all_coords):.3f}, img_w={img_w}")
-
-        # for v in values:
-        #     if v < 0 or v > 1:
-        #         print(f"[ERROR] Valore out of bounds = {v} in frame {image_info['file_name']}")
-
         return yolo_keypoints
     
     def _load_frames_and_keypoints(self, subset_frame_paths, subset, return_data=False):
@@ -670,7 +617,6 @@ class PrepareData():
                 continue
             
             # Carica l'immagine del frame
-            # frame = cv2.imread(frame_path)
             frame = cv2.imread(frame_path, cv2.IMREAD_COLOR)
 
             if frame is None:
@@ -684,7 +630,6 @@ class PrepareData():
                 
                 # Converti i keypoints da OpenPose a COCO
                 frame, keypoints = self._preprocess_image_and_keypoints(frame, keypoints, f"{subject_id}_{sequence_name}_{frame_name}.png")
-                # keypoints = self._convert_openpose_to_coco(keypoints, frame, frame_path)
                 
                 # Se la conversione ha avuto successo, aggiungi il frame e i keypoints ai risultati
                 if keypoints:
@@ -725,72 +670,21 @@ class PrepareData():
             yolo_keypoints = self._coco_to_yolo_txt(keypoints)
 
             # Salva l'immagine e i gait_keypoints in formato COCO nella directory corrispondente
-            # subset_image_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, "images", subset, f"{subject_id}_{sequence_name}_{frame_name}.png")
-            # subset_gait_keypoints_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, "labels", subset, f"{subject_id}_{sequence_name}_{frame_name}.txt")
             subset_image_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "images", f"{subject_id}_{sequence_name}_{frame_name}.png")
             subset_gait_keypoints_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "labels", f"{subject_id}_{sequence_name}_{frame_name}.txt")
-            # subset_image_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "frames", f"{subject_id}_{sequence_name}_{frame_name}.png")
-            # subset_gait_keypoints_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "keypoints", f"{subject_id}_{sequence_name}_{frame_name}.json")
             
             # Salva l'immagine nella directory corrispondente
             frame.save(subset_image_path)
 
-            # Salva i gait_keypoints in formato COCO nel file corrispondente
-            # with open(subset_gait_keypoints_path, 'w') as f:
-            #     json.dump(keypoints, f, indent=4)
-            # Salva i gait_keypoints in formato YOLO nel file corrispondente
+            # Salva i gait_keypoints
             with open(subset_gait_keypoints_path, 'w') as f:
                 f.write(yolo_keypoints)
-
-        # TODO: add a function to create one COCO file with all the keypoints
 
         if return_data:
             print(f" - {subset} subset: caricati {len(subset_data['frames'])} frame con {len(subset_data['keypoints'])} keypoints corrispondenti")
             return subset_data
         else:
             print(f" - {subset} subset: caricati {frames_count} frame con {keypoints_count} keypoints corrispondenti")
-
-    # def _create_coco_annotations_file(self, subset):
-    #     """
-    #     Unisce tutti i file JSON di singolo frame in un unico file COCO per lo split.
-    #     """
-    #     # Root folder for this subset
-    #     subset_root = os.path.join(
-    #         self._yolo_pose_detection_config.save_data_splitted_path,
-    #         "splitted_yolo_pose_database",
-    #         self.biometric_trait, 
-    #         subset
-    #     )
-    #     frames_dir = os.path.join(subset_root, "frames")
-    #     keypoints_dir = os.path.join(subset_root, "keypoints")
-    #     # Prepare merged lists
-    #     merged_images = []
-    #     merged_annotations = []
-    #     merged_categories = None
-    #     # Iterate over all keypoint JSONs
-    #     for fname in sorted(os.listdir(keypoints_dir)):
-    #         if not fname.endswith('.json'):
-    #             continue
-    #         path = os.path.join(keypoints_dir, fname)
-    #         with open(path, 'r') as f:
-    #             data = json.load(f)
-    #         # Extend images and annotations
-    #         merged_images.extend(data.get("images", []))
-    #         merged_annotations.extend(data.get("annotations", []))
-    #         # Capture categories once
-    #         if merged_categories is None:
-    #             merged_categories = data.get("categories", [])
-    #     # Build final COCO dict
-    #     coco = {
-    #         "images": merged_images,
-    #         "annotations": merged_annotations,
-    #         "categories": merged_categories if merged_categories is not None else []
-    #     }
-    #     # Write to disk in the keypoints folder
-    #     out_path = os.path.join(keypoints_dir, f"coco_annotations.json")
-    #     with open(out_path, 'w') as f:
-    #         json.dump(coco, f, indent=2)
-    #     print(f"[INFO] COCO annotations for '{subset}' written to {out_path}")
 
     def prepare_data(self):
         # Carica i percorsi delle silhouette
@@ -799,17 +693,6 @@ class PrepareData():
         # Esegui lo split dei dati
         train_set_frame_paths, val_set_frame_paths, test_set_frame_paths = self._data_splitting(silhouette_data)
 
-        # images_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, "images")
-        # labels_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, "labels")
-
-        # os.makedirs(images_path, exist_ok=True)
-        # os.makedirs(labels_path, exist_ok=True)
-
-        # # Percorsi di salvataggio
-        # for subset in ['train', 'val', 'test']:
-        #     os.makedirs(os.path.join(images_path, subset), exist_ok=True)
-        #     os.makedirs(os.path.join(labels_path, subset), exist_ok=True)
-
         for subset in ['train', 'val', 'test']:
             subset_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset)
 
@@ -817,22 +700,8 @@ class PrepareData():
     
             os.makedirs(os.path.join(subset_path, "images"), exist_ok=True)
             os.makedirs(os.path.join(subset_path, "labels"), exist_ok=True)
-            # os.makedirs(os.path.join(subset_path, "frames"), exist_ok=True)
-            # os.makedirs(os.path.join(subset_path, "keypoints"), exist_ok=True)
         
         # Carica i keypoints per ciascun subset
         self._load_frames_and_keypoints(train_set_frame_paths, "train")
         self._load_frames_and_keypoints(val_set_frame_paths, "val")
         self._load_frames_and_keypoints(test_set_frame_paths, "test")
-
-        # # Verifica la consistenza del numero di keypoints
-        # all_keypoints = []
-        # all_keypoints.extend(train_data['keypoints'])
-        # all_keypoints.extend(val_data['keypoints'])
-        # all_keypoints.extend(test_data['keypoints'])
-        
-        # is_consistent, stats = self.verify_keypoints_count_consistency(all_keypoints)
-
-        # crea file unico COCO per ciascun subset
-        # for split in ["train", "val", "test"]:
-        #     self._create_coco_annotations_file(split)

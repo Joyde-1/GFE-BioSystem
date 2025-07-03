@@ -5,10 +5,7 @@ import sys
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import cv2
-import numpy as np
 import torch
-from torchvision import transforms
-from PIL import Image
 from ultralytics import YOLO
 
 try:
@@ -60,15 +57,6 @@ class Yolo:
         
         # Ottieni l'immagine annotata (bounding box, etichette, ecc.)
         predicted_image = prediction[0].plot()
-
-        # print("PRED BOXES:", prediction[0].boxes, "\n\n")
-        # print("PRED BOXES ORIGIN SHAPE:", prediction[0].boxes.orig_shape, "\n\n")
-        # print("PRED BOXES CONF:", prediction[0].boxes.conf, "\n\n")
-        # print("PRED BOXES CLS:", prediction[0].boxes.cls, "\n\n")
-        # print("PRED BOXES XYXY:", prediction[0].boxes.xyxy, "\n\n")
-        # print("PRED BOXES XYXYN:", prediction[0].boxes.xyxyn, "\n\n")
-        # print("PRED BOXES XYWH:", prediction[0].boxes.xywh, "\n\n")
-        # print("PRED BOXES XYWHN:", prediction[0].boxes.xywhn, "\n\n")
 
         if self._config.show_images.detected_bounding_box:
             cv2.imshow(f"Predicted {self.biometric_trait} bounding box image", predicted_image)
