@@ -29,7 +29,7 @@ class GaitEmbeddingExtraction:
         # Load model weights
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
 
-        print("Model loaded successfully!")
+        # print("Model loaded successfully!")
 
     def _prepare_predict_process(self):
         # Load configuration

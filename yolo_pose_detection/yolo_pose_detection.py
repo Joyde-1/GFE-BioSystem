@@ -52,7 +52,8 @@ class YoloPose:
             show_labels=True,   # False sul main       
             show_conf=True,     # False sul main
             show_boxes=True,    # False sul main
-            line_width=2
+            line_width=2,
+            verbose=False
         )
         
         # Ottieni l'immagine annotata (bounding box, etichette, ecc.)

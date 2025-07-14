@@ -9,7 +9,7 @@ show_image:
   plot_pca_cumulative_variance: False
 
 save_images:
-  pre_processed: False
+  pre_processed: True
   detected: False
   post_processed: False
   features_extracted: False
@@ -28,11 +28,3 @@ features_fusion:
 matching:
   test_ratio: 0.2 # 0.2
   threshold: 0.4
-
-score_fusion:
-  ear_dx: True # False (ear_sx --> True)
-  weight_gait: 0.25
-  weight_face: 0.4
-  weight_ear: 0.35 
-  test_ratio: 0.2 # 0.2
-  threshold: 0.37

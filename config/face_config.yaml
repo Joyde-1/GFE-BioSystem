@@ -17,7 +17,7 @@ show_images:
   features_extracted_face_image: False
 
 save_image:
-  pre_processed: False
+  pre_processed: True
   detected: False
   detected_face: False
   post_processed: False

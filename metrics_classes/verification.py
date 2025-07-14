@@ -244,8 +244,8 @@ class Verification:
             thresholds = np.linspace(0.0, 1.0, num=200)
         elif self._config.matching_algorithm == 'euclidean':
             # thresholds = np.linspace(0.0, 1.0, num=200)
-            # thresholds = np.linspace(1.0, 60.0, num=200)
-            thresholds = np.linspace(1.0, 10.0, num=500)
+            thresholds = np.linspace(1.0, 60.0, num=200)
+            # thresholds = np.linspace(1.0, 10.0, num=500)
         elif self._config.matching_algorithm == 'cosine_similarity':
             thresholds = np.linspace(-1.0, 1.0, num=200)
         elif self._config.matching_algorithm == 'cosine_distance':
@@ -275,7 +275,7 @@ class Verification:
             frr_values.append(frr)
             accuracy_values.append(accuracy)
             
-            print(f"Threshold: {th:.4f} --> FAR: {far:.4f}% - FRR: {frr:.4f}% - Accuracy: {accuracy:.4f} - EER: {eer:.4f}")
+            # print(f"Threshold: {th:.4f} --> FAR: {far:.4f}% - FRR: {frr:.4f}% - Accuracy: {accuracy:.4f} - EER: {eer:.4f}")
 
         self._config.matching.threshold = original_threshold
 

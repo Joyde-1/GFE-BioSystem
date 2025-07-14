@@ -166,7 +166,7 @@ class GaitPreProcessing:
         # 9:left_wrist,10:right_wrist,11:left_hip,12:right_hip,
         # 13:left_knee,14:right_knee,15:left_ankle,16:right_ankle
         custom_connections = [
-            [0, 1, 'head'], [0, 2, 'head'], [1, 2, 'head'], [1, 3, 'head'], [2, 4, 'head'], [3, 5, 'head'], [4, 6, 'head'],
+            # [0, 1, 'head'], [0, 2, 'head'], [1, 2, 'head'], [1, 3, 'head'], [2, 4, 'head'], [3, 5, 'head'], [4, 6, 'head'],
             [5, 6, 'torso'], [5, 11, 'torso'], [6, 12, 'torso'], [11, 12, 'torso'],
             [5, 7, 'left_arm'], [7, 9, 'left_arm'],
             [6, 8, 'right_arm'], [8, 10, 'right_arm'],
@@ -177,6 +177,8 @@ class GaitPreProcessing:
         # Disegna i keypoints
         num_keypoints = len(keypoints) // 3
         for i in range(num_keypoints):
+            if i < 5:
+                continue
             x = int(keypoints[3 * i])
             y = int(keypoints[3 * i + 1])
             v = keypoints[3 * i + 2]  # visibilità

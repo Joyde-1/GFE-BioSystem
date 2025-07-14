@@ -18,12 +18,12 @@ show_images:
   visualize_keypoints: False  # Visualize keypoints on the original frame
 
 save_image:
-  pre_processed: False
+  pre_processed: True
   detected_keypoints: False
   post_processed: False
 
 data:
-  num_classes: 40
+  num_classes: 49
   sequence_names: ['060-01', '075-00', '075-01', '090-00', '090-01']
 pre_processing:
   frame_width: 128

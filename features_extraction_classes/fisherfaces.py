@@ -41,7 +41,7 @@ class FisherFaceExtractor:
 		# Concatena i template
 		images = [image for subject in subjects.values() for image in subject['template']]
 		
-		print("Shape di una image:", images[0].shape)
+		# print("Shape di una image:", images[0].shape)
 		
 		images = self._scale_images(images)
 
@@ -62,7 +62,7 @@ class FisherFaceExtractor:
 
 		self.n_components -= 1
 
-		print("n_components:", self.n_components)
+		# print("n_components:", self.n_components)
 
 		return np.array(subjects_ID)
 	
@@ -84,7 +84,7 @@ class FisherFaceExtractor:
 		# Load LDA model using pickle
 		self._lda = pickle.load(open(f"{self._config.features_extraction.fisherfaces.checkpoints_dir}/lda.pkl", 'rb'))
 
-		print("LDA model loaded.")
+		# print("LDA model loaded.")
 
 	def _train_lda(self, subjects):
 		"""
@@ -99,11 +99,11 @@ class FisherFaceExtractor:
 		self.images = self._prepare_images(subjects)
 		self.subjects_ID = self._prepare_subjects_ID(subjects)
 
-		print("Face images shape after scaling:", self.images.shape)
+		# print("Face images shape after scaling:", self.images.shape)
 		
 		unique_labels = np.unique(self.subjects_ID)
 		self.n_components = min(len(unique_labels) - 1, len(self.images) - len(unique_labels))
-		print("n_components:", self.n_components)
+		# print("n_components:", self.n_components)
 		
 		# Creiamo ed addestriamo il modello LDA.
 		self._lda = LinearDiscriminantAnalysis(n_components=self.n_components)
@@ -181,9 +181,9 @@ class FisherFaceExtractor:
 	def extract_fisherfaces(self, subjects, width, height):
 		self._train_lda(subjects)
 		fisherfaces = [self.extract_fisherface(np.array(image)) for image in self.images]
-		print("Fisher faces: ", type(fisherfaces))
-		print("Fisher faces: ", len(fisherfaces))
-		print("Fisher faces: ", type(fisherfaces[0]))
-		print("Fisher faces: ", fisherfaces[0].shape)
+		# print("Fisher faces: ", type(fisherfaces))
+		# print("Fisher faces: ", len(fisherfaces))
+		# print("Fisher faces: ", type(fisherfaces[0]))
+		# print("Fisher faces: ", fisherfaces[0].shape)
 		visual_fisherfaces = [self.extract_visual(fisherface, width, height) for fisherface in fisherfaces]
 		return fisherfaces, visual_fisherfaces

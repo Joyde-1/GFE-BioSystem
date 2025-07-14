@@ -1,6 +1,6 @@
 # Paths
-# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
-data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database ear_sx multimodale
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+# data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database ear_sx multimodale
 save_path: /Users/giovanni/Desktop/Tesi di Laurea
 results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
 predictor_path: /Users/giovanni/Desktop/Tesi di Laurea/model_checkpoints/face_detection
@@ -18,7 +18,7 @@ show_images:
   features_extracted_ear_image: False
 
 save_image:
-  pre_processed: False
+  pre_processed: True
   detected: False
   landmarks: False
   post_processed: False
