@@ -2,6 +2,7 @@ import os
 import pickle
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+
 class DataScaler:
 
     def __init__(self, gait_config):
@@ -75,7 +76,7 @@ class DataScaler:
 		# Load scaler using pickle
         self._scaler = pickle.load(open(f"{self._gait_config.data.scaler_dir}/gait_{self._gait_config.data.scaler}_scaler.pkl", 'rb'))
 
-        # print(f"Gait {self._gait_config.data.scaler} scaler loaded.")
+        print(f"Gait {self._gait_config.data.scaler} scaler loaded.")
 
     def fit_scaler(self, X_train):
         """

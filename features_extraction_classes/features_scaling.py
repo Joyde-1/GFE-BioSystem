@@ -38,9 +38,9 @@ class FeaturesScaling():
             # Convertire la lista in un array NumPy 2D
             combined_templates_array = np.array(processed_templates)
 
-        # print("Forma di templates dopo del np.vstack (o np.array):", combined_templates_array.shape)
-        # print("Numero di sample (righe):", combined_templates_array.shape[0])
-        # print("Numero di feature (colonne):", combined_templates_array.shape[1])
+        print("Forma di templates dopo del np.vstack (o np.array):", combined_templates_array.shape)
+        print("Numero di sample (righe):", combined_templates_array.shape[0])
+        print("Numero di feature (colonne):", combined_templates_array.shape[1])
 
         self.scaler.fit(combined_templates_array)
 

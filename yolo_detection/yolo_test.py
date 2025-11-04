@@ -29,7 +29,7 @@ def prepare_data(yolo_detection_config, biometric_trait):
     prepare_data = PrepareData(yolo_detection_config, biometric_trait)
 
     # Load and process training, validation and test datasets
-    # prepare_data.prepare_data()
+    prepare_data.prepare_data()
 
     print(f"{biometric_trait} images and bounding boxes processed correctly. \n\n")
 

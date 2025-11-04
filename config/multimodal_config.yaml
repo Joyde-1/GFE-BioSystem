@@ -10,12 +10,12 @@ show_image:
 
 save_images:
   pre_processed: True
-  detected: False
-  post_processed: False
-  features_extracted: False
-  pca_cumulative_variance: False
+  detected: True
+  post_processed: True
+  features_extracted: True
+  pca_cumulative_variance: True
 
-matching_algorithm: euclidean 
+matching_algorithm: euclidean # euclidean # chi-square #hamming
 
 features_fusion:
   ear_dx: True # False (ear_sx --> True)
@@ -28,3 +28,11 @@ features_fusion:
 matching:
   test_ratio: 0.2 # 0.2
   threshold: 0.4
+
+# score_fusion:
+#   ear_dx: True # False (ear_sx --> True)
+#   weight_gait: 0.25
+#   weight_face: 0.4
+#   weight_ear: 0.35 
+#   test_ratio: 0.2 # 0.2
+#   threshold: 0.37

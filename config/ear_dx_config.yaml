@@ -10,21 +10,21 @@ browse_path: False
 
 # On/Off show images
 show_images:
-  pre_processed_ear_image: False
-  detected_ear_bounding_box: False
-  detected_ear_landmarks: False
-  alignment_ear_image: False
-  post_processed_ear_image: False
-  padded_ear_image: False
-  features_extracted_ear_image: False
+  pre_processed_ear_image: True
+  detected_ear_bounding_box: True
+  detected_ear_landmarks: True
+  alignment_ear_image: True
+  post_processed_ear_image: True
+  padded_ear_image: True
+  features_extracted_ear_image: True
 
 save_image:
   pre_processed: True
-  detected: False # True False
-  landmarks: False
-  post_processed: False
-  padded: False
-  features_extracted: False
+  detected: True # True False
+  landmarks: True
+  post_processed: True
+  padded: True
+  features_extracted: True
 
 use_checkpoint: False
 
@@ -32,7 +32,7 @@ biometric_trait: ear_dx
 
 detector: yolo # yolo None
 features_extractor: fisherface
-matching_algorithm: euclidean 
+matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
 
 pre_processing:
   remove_background: False

@@ -46,7 +46,7 @@ class FeaturesFusionPCA():
         weighted_ear = ear_features * self.multimodal_config.features_fusion.weight_ear
 
         combined_features = np.concatenate((weighted_gait, weighted_face, weighted_ear), axis=1)
-        # print("Shape di combined_features:", combined_features.shape)  # Deve essere sempre (1, n_total_features)
+        print("Shape di combined_features:", combined_features.shape)  # Deve essere sempre (1, n_total_features)
         return combined_features
 
     def features_fusion_pca(self, combined_templates, file_suffix):
@@ -65,7 +65,7 @@ class FeaturesFusionPCA():
         """
         explained_variance_ratio = self._run_pca(combined_templates)
         # Stampiamo il numero massimo di componenti che possiamo usare
-        # print(f"PCA può scegliere max {min(combined_templates.shape)} componenti")
+        print(f"PCA può scegliere max {min(combined_templates.shape)} componenti")
         # Calculate the cumulative explained variance
         cumulative_variance_explained = np.cumsum(explained_variance_ratio)
 
@@ -77,7 +77,7 @@ class FeaturesFusionPCA():
 
         plot_principal_components(self.multimodal_config, cumulative_variance_explained, optimal_components, file_suffix)
         
-        # print("The value of optimal features obtained through PCA - Cumulative is: ", optimal_components)
+        print("The value of optimal features obtained through PCA - Cumulative is: ", optimal_components)
 
         principal_components = self._run_pca(combined_templates, optimal_components)
 

@@ -52,8 +52,7 @@ class Yolo:
             show_labels=True,   # False sul main       
             show_conf=True,     # False sul main
             show_boxes=True,    # False sul main
-            line_width=2,
-            verbose=False
+            line_width=2
         )
         
         # Ottieni l'immagine annotata (bounding box, etichette, ecc.)
@@ -71,7 +70,7 @@ class Yolo:
         # Estrai la bounding box corrispondente
         best_xyxyn = prediction[0].boxes.xyxyn[max_conf_index]
 
-        # print("Confidenza più alta:", prediction[0].boxes.conf[max_conf_index].item())
-        # print("Bounding box corrispondente:", best_xyxyn)
+        print("Confidenza più alta:", prediction[0].boxes.conf[max_conf_index].item())
+        print("Bounding box corrispondente:", best_xyxyn)
 
         return predicted_image, best_xyxyn.tolist()

@@ -10,24 +10,24 @@ browse_path: False
 
 # On/Off show images
 show_images:
-  pre_processed_face_image: False
-  detected_face_bounding_box: False
-  alignment_face_image: False
-  post_processed_face_image: False
-  features_extracted_face_image: False
+  pre_processed_face_image: True
+  detected_face_bounding_box: True
+  alignment_face_image: True
+  post_processed_face_image: True
+  features_extracted_face_image: True
 
 save_image:
   pre_processed: True
-  detected: False
-  detected_face: False
-  post_processed: False
-  features_extracted: False
+  detected: True
+  detected_face: True
+  post_processed: True
+  features_extracted: True
 
 use_checkpoint: False
 
-detector: yolo
-features_extractor: fisherface
-matching_algorithm: euclidean
+detector: yolo # viola-jones # CNN
+features_extractor: fisherface # fisherface #  gabor_wavelet # lbp
+matching_algorithm: euclidean # chi-square # hamming # euclidean # cosine_similarity
 
 pre_processing:
   remove_background: False
@@ -48,7 +48,7 @@ post_processing:
   clahe:
     cliplimit: 3.0 #2.0
     tilegridsize: [8, 8] #[8, 8]
-  image_size: 32
+  image_size: 32 # 128 224 # Dimensione standard per il ridimensionamento dei volti (448)
 
 features_extraction:
   fisherfaces:

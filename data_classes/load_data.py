@@ -168,6 +168,6 @@ class LoadData:
         
         # per es. stampo quanti frame trova per il soggetto '1' in ogni sequenza
         # for i, seq in enumerate(frame_sequences):
-            # print(f"Sequenza {i}: {len(seq)} frame")
+        #     print(f"Sequenza {i}: {len(seq)} frame")
 
         return frame_sequences, frame_sequences_names, frame_sequences_paths, all_subject_ids, all_sequence_names, all_frame_names

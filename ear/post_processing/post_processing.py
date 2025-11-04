@@ -22,7 +22,7 @@ class EarPostProcessing:
     def _bgr_to_gray(self, image):
         # Convert to grayscale
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+    
     def _apply_clahe(self, image):
         # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
         clahe = cv2.createCLAHE(clipLimit=self.ear_config.post_processing.clahe.cliplimit, tileGridSize=self.ear_config.post_processing.clahe.tilegridsize)

@@ -19,11 +19,11 @@ show_images:
 
 save_image:
   pre_processed: True
-  detected: False
-  landmarks: False
-  post_processed: False
-  padded: False
-  features_extracted: False
+  detected: True
+  landmarks: True
+  post_processed: True
+  padded: True
+  features_extracted: True
 
 use_checkpoint: False
 
@@ -31,7 +31,7 @@ biometric_trait: ear_sx
 
 detector: yolo
 features_extractor: fisherface
-matching_algorithm: euclidean 
+matching_algorithm: euclidean # chi-square # euclidean # cosine_similarity
 
 pre_processing:
   remove_background: False

@@ -25,8 +25,8 @@ save_image:
   plot_reference_vs_prediction: True
 
 data:
-  num_classes: 49
-  selected_angles: [30, 45, 60, 75, 90]
+  num_classes: 49 # 5000 # 49
+  selected_angles: [30, 45, 60, 75, 90] # [30, 60, 90]
   image_width: 1280
   image_height: 960
   image_size: 128

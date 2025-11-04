@@ -268,6 +268,9 @@ class PrepareData():
         ann_id = self._next_ann_id
         self._next_image_id += 1
         self._next_ann_id += 1
+        
+        # Ottieni le dimensioni dell'immagine originale
+        original_height, original_width = frame.shape[:2]
 
         # 1) preprocess + mask
         proc, mask = self._preprocess_silhouette(frame)
@@ -672,7 +675,7 @@ class PrepareData():
             # Salva l'immagine e i gait_keypoints in formato COCO nella directory corrispondente
             subset_image_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "images", f"{subject_id}_{sequence_name}_{frame_name}.png")
             subset_gait_keypoints_path = os.path.join(self._yolo_pose_detection_config.save_data_splitted_path, "splitted_yolo_pose_database", self.biometric_trait, subset, "labels", f"{subject_id}_{sequence_name}_{frame_name}.txt")
-            
+        
             # Salva l'immagine nella directory corrispondente
             frame.save(subset_image_path)
 

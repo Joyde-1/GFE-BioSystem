@@ -1,7 +1,7 @@
+import time
 import sys
 import os
 import numpy as np
-import time
 
 # Add the parent directory to sys.path to allow imports from data_classes
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -9,7 +9,6 @@ from data_classes.load_data import LoadData
 from gait.pre_processing.pre_processing import GaitPreProcessing
 from face.pre_processing.pre_processing import FacePreProcessing
 from ear.pre_processing.pre_processing import EarPreProcessing
-# from gait.pre_processing.gait_keypoints_detection import GaitKeypointsDetection
 from yolo_pose_detection.yolo_pose_detection import YoloPose
 from yolo_detection.yolo_detection import Yolo
 from face.post_processing.post_processing import FacePostProcessing
@@ -20,6 +19,7 @@ from features_extraction_classes.features_scaling import FeaturesScaling
 from metrics_classes.verification import Verification
 from metrics_classes.recognition_closed_set import RecognitionClosedSet
 from metrics_classes.recognition_open_set import RecognitionOpenSet
+# from matching_classes.matching_score_fusion import MatchingScoreFusion
 from utils import load_config, browse_path, path_extractor, save_image, load_checkpoint, save_checkpoint
 
 # MULTIMODAL CLASSES
@@ -56,7 +56,6 @@ if __name__ == '__main__':
 
     # INSTANTIATE GAIT CLASS OBJECTS
     gait_pre_processing = GaitPreProcessing(gait_config)
-    # gait_keypoints_detector = GaitKeypointsDetection(gait_config)
     gait_yolo_pose = YoloPose(gait_config, 'gait')
     gait_embedding_extractor = GaitEmbeddingExtraction(gait_config)
 
@@ -72,6 +71,7 @@ if __name__ == '__main__':
     ear_dx_post_processing = EarPostProcessing(ear_dx_config)
     ear_dx_fisherface_extractor = FisherFaceExtractor(ear_dx_config)
 
+    # INSTANTIATE EAR SX CLASS OBJECTS
     ear_sx_pre_processing = EarPreProcessing(ear_sx_config)
     ear_sx_yolo = Yolo(ear_sx_config, 'ear_sx')
     ear_sx_post_processing = EarPostProcessing(ear_sx_config)
@@ -88,6 +88,7 @@ if __name__ == '__main__':
     ear_dx_features_fusion = FeaturesFusionPCA(multimodal_config)
     ear_sx_features_fusion = FeaturesFusionPCA(multimodal_config)
     features_fusion_reduced = FeaturesFusionPCA(multimodal_config)
+    # multimodal_score_fusion_matching = MatchingScoreFusion(multimodal_config)
 
     if multimodal_config.use_checkpoint:
         checkpoint = load_checkpoint('checkpoint_multimodal.json')
@@ -106,10 +107,11 @@ if __name__ == '__main__':
     #-------------------------------
     # 1 - LOAD IMAGES & FRAMES PHASE
     #-------------------------------
+
     print("\n" + "="*40)
     print("            LOAD DATA PHASE")
     print("="*40 + "\n")
-
+    
     # LOAD GAIT FRAMES
     # gait_frame_sequences, gait_frame_sequences_names, gait_frame_sequences_paths = load_data.load_frames(gait_config, 'gait')
     gait_frame_sequences, gait_frame_sequences_names, gait_frame_sequences_paths, all_subject_ids, all_sequence_names, all_frame_names = load_data.load_frames(gait_config, 'gait')
@@ -171,6 +173,7 @@ if __name__ == '__main__':
         #-------------------------------
         # 2 - PRE-PROCESSING PHASE
         #-------------------------------
+
         print("\n" + "="*40)
         print("     PRE-PROCESSING DETECTION PHASE")
         print("="*40 + "\n")
@@ -200,6 +203,7 @@ if __name__ == '__main__':
         # FACE PRE-PROCESSING
         pre_processing_face_start = time.perf_counter()
 
+        # FACE PRE-PROCESSING
         face_pre_processed_image = face_pre_processing.pre_processing_image(face_image.copy())
         if multimodal_config.save_images.pre_processed:
             if face_config.save_image.pre_processed:
@@ -212,11 +216,12 @@ if __name__ == '__main__':
         # EAR DX PRE-PROCESSING
         pre_processing_ear_start = time.perf_counter()
 
+        # EAR DX PRE-PROCESSING
         ear_dx_pre_processed_image = ear_dx_pre_processing.pre_processing_image(ear_dx_image.copy())
         if multimodal_config.save_images.pre_processed:
             if ear_dx_config.save_image.pre_processed:
                 save_image(ear_dx_config, 'ear_dx', ear_dx_pre_processed_image, acquisition_name, 'pre_processed_ear_dx_image')
-                
+
         pre_processing_ear_end = time.perf_counter()
 
         print(f"Tempo di esecuzione fase di pre-processing detection ear: {pre_processing_ear_end - pre_processing_ear_start:.5f} secondi \n")
@@ -224,6 +229,7 @@ if __name__ == '__main__':
         # EAR SX PRE-PROCESSING
         pre_processing_ear_start = time.perf_counter()
 
+        # EAR SX PRE-PROCESSING
         ear_sx_pre_processed_image = ear_sx_pre_processing.pre_processing_image(ear_sx_image.copy())
         if multimodal_config.save_images.pre_processed:
             if ear_sx_config.save_image.pre_processed:
@@ -240,6 +246,7 @@ if __name__ == '__main__':
         #--------------------
         # 3 - DETECTION PHASE
         #--------------------
+
         print("\n" + "="*40)
         print("          DETECTION PHASE")
         print("="*40 + "\n")
@@ -250,6 +257,9 @@ if __name__ == '__main__':
         gait_keypoints_sequence = []
 
         detection_gait_start = time.perf_counter()
+
+        # GAIT KEYPOINTS DETECTION
+        gait_keypoints_sequence = []
 
         # Gait Keypoints Detection phase
         # -----------------------------------------------------------
@@ -272,6 +282,7 @@ if __name__ == '__main__':
         # FACE DETECTION
         detection_face_start = time.perf_counter()
 
+        # FACE DETECTION
         if face_config.detector == 'yolo':
             face_pre_processed_image_path = path_extractor(face_config, 'face', acquisition_name, 'pre_processed_face_image')
             face_detected_image, face_bounding_box = face_yolo.predict_bounding_box(face_pre_processed_image_path)
@@ -289,6 +300,7 @@ if __name__ == '__main__':
         # EAR DX DETECTION
         detection_ear_start = time.perf_counter()
 
+        # EAR DX DETECTION
         if ear_dx_config.detector == 'yolo':
             ear_dx_pre_processed_image_path = path_extractor(ear_dx_config, 'ear_dx', acquisition_name, 'pre_processed_ear_dx_image')
             ear_dx_detected_image, ear_dx_bounding_box = ear_dx_yolo.predict_bounding_box(ear_dx_pre_processed_image_path)
@@ -308,6 +320,7 @@ if __name__ == '__main__':
         # EAR SX DETECTION
         detection_ear_start = time.perf_counter()
 
+        # EAR SX DETECTION
         if ear_sx_config.detector == 'yolo':
             ear_sx_pre_processed_image_path = path_extractor(ear_sx_config, 'ear_sx', acquisition_name, 'pre_processed_ear_sx_image')
             ear_sx_detected_image, ear_sx_bounding_box = ear_sx_yolo.predict_bounding_box(ear_sx_pre_processed_image_path)
@@ -329,6 +342,7 @@ if __name__ == '__main__':
         #--------------------------
         # 4 - POST-PROCESSING PHASE
         #--------------------------
+        
         print("\n" + "="*40)
         print("          PRE-PROCESSING PHASE")
         print("="*40 + "\n")
@@ -340,9 +354,9 @@ if __name__ == '__main__':
 
         post_processing_gait_start = time.perf_counter()
 
-        for i, (gait_keypoints, gait_frame, gait_pre_processing_params) in enumerate(zip(gait_keypoints_sequence, gait_frame_sequence, gait_pre_processing_params_sequence)):
+        for i, (gait_keypoints, gait_pre_processed_frame, gait_pre_processing_params) in enumerate(zip(gait_keypoints_sequence, gait_pre_processed_frame_sequence, gait_pre_processing_params_sequence)):
             post_processed_keypoints = gait_pre_processing.pre_processing_keypoints(gait_keypoints, gait_pre_processing_params)
-            gait_post_processed_frame_with_keypoints = gait_pre_processing.visualize_keypoints(post_processed_keypoints, gait_frame)
+            gait_post_processed_frame_with_keypoints = gait_pre_processing.visualize_keypoints(post_processed_keypoints, gait_pre_processed_frame)
 
             if multimodal_config.save_images.post_processed:
                 if gait_config.save_image.post_processed:
@@ -359,6 +373,7 @@ if __name__ == '__main__':
         # FACE POST-PROCESSING
         post_processing_face_start = time.perf_counter()
 
+        # FACE POST-PROCESSING
         face_post_processed_image, face_shape = face_post_processing.post_processing_image(face_pre_processed_image.copy(), face_bounding_box)
 
         if multimodal_config.save_images.post_processed:
@@ -372,6 +387,7 @@ if __name__ == '__main__':
         # EAR DX POST-PROCESSING
         post_processing_ear_start = time.perf_counter()
 
+        # EAR DX POST-PROCESSING
         ear_dx_post_processed_image, ear_dx_shape = ear_dx_post_processing.post_processing_image(ear_dx_pre_processed_image.copy(), ear_dx_bounding_box)
         if multimodal_config.save_images.post_processed:
             if ear_dx_config.save_image.post_processed:
@@ -384,6 +400,7 @@ if __name__ == '__main__':
         # EAR SX POST-PROCESSING
         post_processing_ear_start = time.perf_counter()
 
+        # EAR SX POST-PROCESSING
         ear_sx_post_processed_image, ear_sx_shape = ear_sx_post_processing.post_processing_image(ear_sx_pre_processed_image.copy(), ear_sx_bounding_box)
         if multimodal_config.save_images.post_processed:
             if ear_sx_config.save_image.post_processed:
@@ -400,6 +417,7 @@ if __name__ == '__main__':
         #------------------------------
         # 5 - FEATURES EXTRACTION PHASE
         #------------------------------
+
         print("\n" + "="*40)
         print("       FEATURES EXTRACTION PHASE")
         print("="*40 + "\n")
@@ -409,6 +427,7 @@ if __name__ == '__main__':
         # GAIT EMBEDDING EXTRACTION
         features_extraction_gait_start = time.perf_counter()
 
+        # GAIT EMBEDDING EXTRACTION
         gait_embedding = gait_embedding_extractor.extract_embedding(gait_keypoints_sequence)
 
         subjects['gait'][subject]['acquisition_name'].append(acquisition_name)
@@ -421,6 +440,7 @@ if __name__ == '__main__':
         # FACE FEATURES EXTRACTION
         features_extraction_face_start = time.perf_counter()
 
+        # FACE FEATURES EXTRACTION
         if face_config.features_extraction.fisherfaces.load_model:
             face_template = face_fisherface_extractor.extract_fisherface(np.array(face_post_processed_image))
             face_template_vis = face_fisherface_extractor.extract_visual(face_template, face_config.post_processing.image_size, face_config.post_processing.image_size)
@@ -442,6 +462,7 @@ if __name__ == '__main__':
         # EAR DX FEATURES EXTRACTION
         features_extraction_ear_start = time.perf_counter()
 
+        # EAR DX FEATURES EXTRACTION
         if ear_dx_config.features_extraction.fisherfaces.load_model:
             ear_dx_template = ear_dx_fisherface_extractor.extract_fisherface(np.array(ear_dx_post_processed_image))
             ear_dx_template_vis = ear_dx_fisherface_extractor.extract_visual(ear_dx_template, ear_dx_config.post_processing.image_size, ear_dx_config.post_processing.image_size)
@@ -463,6 +484,7 @@ if __name__ == '__main__':
         # EAR SX FEATURES EXTRACTION
         features_extraction_ear_start = time.perf_counter()
 
+        # EAR SX FEATURES EXTRACTION
         if ear_sx_config.features_extraction.fisherfaces.load_model:
             ear_sx_template = ear_sx_fisherface_extractor.extract_fisherface(np.array(ear_sx_post_processed_image))
             ear_sx_template_vis = ear_sx_fisherface_extractor.extract_visual(ear_sx_template, ear_sx_config.post_processing.image_size, ear_sx_config.post_processing.image_size)
@@ -570,6 +592,8 @@ if __name__ == '__main__':
 
     time.sleep(0.5)
 
+
+
     #-----------------------------------------------------
     # 6 - FIRST MULTIMODAL SYSTEM - FEATURES SCALING PHASE
     #-----------------------------------------------------
@@ -586,10 +610,10 @@ if __name__ == '__main__':
     ear_dx_templates = [template for subject in subjects['ear_dx'].values() for template in subject['template']]
     ear_sx_templates = [template for subject in subjects['ear_sx'].values() for template in subject['template']]
 
-    # print("Shape di un template di gait_templates: ", gait_templates[0].shape)
-    # print("Shape di un template di face_templates: ", face_templates[0].shape)
-    # print("Shape di un template di ear_dx_templates: ", ear_dx_templates[0].shape)
-    # print("Shape di un template di ear_sx_templates: ", ear_sx_templates[0].shape)
+    print("Shape di un template di gait_templates: ", gait_templates[0].shape)
+    print("Shape di un template di face_templates: ", face_templates[0].shape)
+    print("Shape di un template di ear_dx_templates: ", ear_dx_templates[0].shape)
+    print("Shape di un template di ear_sx_templates: ", ear_sx_templates[0].shape)
     
     gait_scaler.fit_scaler(gait_templates, multimodal=True)
     face_scaler.fit_scaler(face_templates, multimodal=True)
@@ -620,12 +644,12 @@ if __name__ == '__main__':
     # Convertiamo la lista in un array numpy di forma (n_samples, n_features)
     combined_templates = np.vstack(combined_templates)
 
-    # print("Shape finale concatenated_templates:", combined_templates.shape)
+    print("Shape finale concatenated_templates:", combined_templates.shape)
 
     fused_templates = features_fusion.features_fusion_pca(combined_templates, "multimodal_system_features_early_fusion_pca_cumulative_variance")
 
     # Output
-    # print("Forma dei template fusi:", fused_templates.shape)
+    print("Forma dei template fusi:", fused_templates.shape)
 
     # Itera su subjects['fused'] e assegna i template fusi
     fused_template_index = 0  # Indice per tracciare la posizione nel fused_templates
@@ -681,26 +705,27 @@ if __name__ == '__main__':
     reduced_ear_dx_templates = np.vstack(reduced_ear_dx_templates_list)
     reduced_ear_sx_templates = np.vstack(reduced_ear_sx_templates_list)
 
-    # print("Shape finale reduced_gait_templates:", reduced_gait_templates.shape)
-    # print("Shape finale reduced_face_templates:", reduced_face_templates.shape)
-    # print("Shape finale reduced_ear_dx_templates:", reduced_ear_dx_templates.shape)
-    # print("Shape finale reduced_ear_sx_templates:", reduced_ear_sx_templates.shape)
+    print("Shape finale reduced_gait_templates:", reduced_gait_templates.shape)
+    print("Shape finale reduced_face_templates:", reduced_face_templates.shape)
+    print("Shape finale reduced_ear_dx_templates:", reduced_ear_dx_templates.shape)
+    print("Shape finale reduced_ear_sx_templates:", reduced_ear_sx_templates.shape)
 
 
 
     #-----------------------------------------------------
     # 9 - SECOND MULTIMODAL SYSTEM - FEATURES FUSION PHASE
     #-----------------------------------------------------
+
     reduced_gait_templates = gait_features_fusion.features_fusion_pca(reduced_gait_templates, "gait_pca_cumulative_variance")
     reduced_face_templates = face_features_fusion.features_fusion_pca(reduced_face_templates, "face_pca_cumulative_variance")
     reduced_ear_dx_templates = ear_dx_features_fusion.features_fusion_pca(reduced_ear_dx_templates, "ear_dx_pca_cumulative_variance")
     reduced_ear_sx_templates = ear_sx_features_fusion.features_fusion_pca(reduced_ear_sx_templates, "ear_sx_pca_cumulative_variance")
 
     # Output
-    # print("Forma dei template reduced_gait_templates fusi:", reduced_gait_templates.shape)
-    # print("Forma dei template reduced_face_templates fusi:", reduced_face_templates.shape)
-    # print("Forma dei template reduced_ear_dx_templates fusi:", reduced_ear_dx_templates.shape)
-    # print("Forma dei template reduced_ear_sx_templates fusi:", reduced_ear_sx_templates.shape)
+    print("Forma dei template reduced_gait_templates fusi:", reduced_gait_templates.shape)
+    print("Forma dei template reduced_face_templates fusi:", reduced_face_templates.shape)
+    print("Forma dei template reduced_ear_dx_templates fusi:", reduced_ear_dx_templates.shape)
+    print("Forma dei template reduced_ear_sx_templates fusi:", reduced_ear_sx_templates.shape)
 
     combined_templates = []
 
@@ -732,12 +757,12 @@ if __name__ == '__main__':
     # Convertiamo la lista in un array numpy di forma (n_samples, n_features)
     combined_templates = np.vstack(combined_templates)
 
-    # print("Shape finale concatenated_templates:", combined_templates.shape)
+    print("Shape finale concatenated_templates:", combined_templates.shape)
 
     fused_templates = features_fusion_reduced.features_fusion_pca(combined_templates, "multimodal_system_features_late_fusion_pca_cumulative_variance")
 
     # Output
-    # print("Forma dei template fusi:", fused_templates.shape)
+    print("Forma dei template fusi:", fused_templates.shape)
 
     # Itera su subjects['fused'] e assegna i template fusi
     fused_template_index = 0  # Indice per tracciare la posizione nel fused_templates
@@ -981,6 +1006,7 @@ if __name__ == '__main__':
     #------------------------
     # FIRST MULTIMODAL SYSTEM
     #------------------------
+
     print("\n" + "="*50)
     print("        EARLY FUSION SYSTEM: MATCHING PHASE")
     print("="*50 + "\n")
@@ -993,13 +1019,13 @@ if __name__ == '__main__':
     accuracy = multimodal_early_fusion_verification.calculate_accuracy(t_imp, t_legit, fa, fr)
 
     print("", "Multimodal early fusion verification task metrics:", sep='\n')
-    # print(f"FAR: {far:.4f} %")
+    print(f"FAR: {far:.4f} %")
     print(f"Tempo di ricerca (FAR): {ms_far:.4f} ms/probe")
     print(f"Throughput (FAR): {thr_far:.4f} probe/sec")
-    # print(f"FRR: {frr:.4f} %")
+    print(f"FRR: {frr:.4f} %")
     print(f"Tempo di ricerca (FRR): {ms_frr:.4f} ms/probe")
     print(f"Throughput (FRR): {thr_frr:.4f} probe/sec")
-    # print(f"Accuracy: {accuracy:.4f} %")
+    print(f"Accuracy: {accuracy:.4f} %")
 
     multimodal_early_fusion_verification.calculate_roc_and_det(subjects['fused'])
     multimodal_early_fusion_verification.far_vs_frr(subjects['fused'])
@@ -1010,9 +1036,9 @@ if __name__ == '__main__':
     rank1, rank5, mAP, t_ms, tps = multimodal_early_fusion_recognition_closed_set.evaluate_kfold(subjects['fused'], max_rank=20)
 
     print("", "Multimodal early fusion recognition (closed-set) task metrics:", sep='\n')
-    # print(f"Rank-1 medio: {rank1:.4f}%")
-    # print(f"Rank-5 medio: {rank5:.4f}%")
-    # print(f"mAP medio: {mAP:.4f}%")
+    print(f"Rank-1 medio: {rank1:.4f}%")
+    print(f"Rank-5 medio: {rank5:.4f}%")
+    print(f"mAP medio: {mAP:.4f}%")
     print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
     print(f"Throughput: {tps:.4f} probe/sec")
 
@@ -1025,20 +1051,19 @@ if __name__ == '__main__':
     fpir_arr, fnir_arr, dir_arr = multimodal_early_fusion_recognition_open_set.dir_fpir_curve(subjects['fused'])
 
     print("", "Multimodal early fusion recognition (open-set) task metrics:", sep='\n')
-    # print(f"FPIR: {fp:.4f} %")
-    # print(f"FNIR: {fn:.4f} %")
-    # print(f"EER: {eer:.4f} %")
-    # print(f"threshold: {eer_th:.4f} %")
+    print(f"FPIR: {fp:.4f} %")
+    print(f"FNIR: {fn:.4f} %")
+    print(f"EER: {eer:.4f} %")
+    print(f"threshold: {eer_th:.4f} %")
     print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
     print(f"Throughput: {tps:.4f} probe/sec")
 
-    print("\n\n")
-
-    time.sleep(0.5)
+    print("")
 
     #-------------------------
     # SECOND MULTIMODAL SYSTEM
     #-------------------------
+
     print("\n" + "="*50)
     print("        LATE FUSION SYSTEM: MATCHING PHASE")
     print("="*50 + "\n")
@@ -1051,13 +1076,13 @@ if __name__ == '__main__':
     accuracy = multimodal_late_fusion_verification.calculate_accuracy(t_imp, t_legit, fa, fr)
 
     print("", "Multimodal late fusion verification task metrics:", sep='\n')
-    # print(f"FAR: {far:.4f} %")
+    print(f"FAR: {far:.4f} %")
     print(f"Tempo di ricerca (FAR): {ms_far:.4f} ms/probe")
     print(f"Throughput (FAR): {thr_far:.4f} probe/sec")
-    # print(f"FRR: {frr:.4f} %")
+    print(f"FRR: {frr:.4f} %")
     print(f"Tempo di ricerca (FRR): {ms_frr:.4f} ms/probe")
     print(f"Throughput (FRR): {thr_frr:.4f} probe/sec")
-    # print(f"Accuracy: {accuracy:.4f} %")
+    print(f"Accuracy: {accuracy:.4f} %")
 
     multimodal_late_fusion_verification.calculate_roc_and_det(subjects['fused_reduced'])
     multimodal_late_fusion_verification.far_vs_frr(subjects['fused_reduced'])
@@ -1068,9 +1093,9 @@ if __name__ == '__main__':
     rank1, rank5, mAP, t_ms, tps = multimodal_late_fusion_recognition_closed_set.evaluate_kfold(subjects['fused_reduced'], max_rank=20)
 
     print("", "Multimodal late fusion recognition (closed-set) task metrics:", sep='\n')
-    # print(f"Rank-1 medio: {rank1:.4f}%")
-    # print(f"Rank-5 medio: {rank5:.4f}%")
-    # print(f"mAP medio: {mAP:.4f}%")
+    print(f"Rank-1 medio: {rank1:.4f}%")
+    print(f"Rank-5 medio: {rank5:.4f}%")
+    print(f"mAP medio: {mAP:.4f}%")
     print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
     print(f"Throughput: {tps:.4f} probe/sec")
 
@@ -1083,10 +1108,10 @@ if __name__ == '__main__':
     fpir_arr, fnir_arr, dir_arr = multimodal_late_fusion_recognition_open_set.dir_fpir_curve(subjects['fused_reduced'])
 
     print("", "Multimodal late fusion recognition (open-set) task metrics:", sep='\n')
-    # print(f"FPIR: {fp:.4f} %")
-    # print(f"FNIR: {fn:.4f} %")
-    # print(f"EER: {eer:.4f} %")
-    # print(f"threshold: {eer_th:.4f} %")
+    print(f"FPIR: {fp:.4f} %")
+    print(f"FNIR: {fn:.4f} %")
+    print(f"EER: {eer:.4f} %")
+    print(f"threshold: {eer_th:.4f} %")
     print(f"Tempo di ricerca: {t_ms:.4f} ms/probe")
     print(f"Throughput: {tps:.4f} probe/sec")
 

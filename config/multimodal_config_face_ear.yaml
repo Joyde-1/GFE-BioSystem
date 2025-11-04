@@ -1,0 +1,29 @@
+# Paths
+data_dir: /Users/giovanni/Desktop/Tesi di Laurea/database
+save_path: /Users/giovanni/Desktop/Tesi di Laurea
+results_path: /Users/giovanni/Desktop/Tesi di Laurea/results
+
+browse_path: False
+
+show_image:
+  plot_pca_cumulative_variance: False
+
+save_images:
+  pre_processed: True
+  detected: True
+  post_processed: True
+  features_extracted: True
+  pca_cumulative_variance: True
+
+matching_algorithm: euclidean 
+
+features_fusion:
+  ear_dx: False # False (ear_sx --> True)
+  scaler_type: 'standard'
+  # Definisce i pesi per ciascuna modalità
+  weight_face: 0.65
+  weight_ear: 0.35
+
+matching:
+  test_ratio: 0.2 # 0.2
+  threshold: 0.4

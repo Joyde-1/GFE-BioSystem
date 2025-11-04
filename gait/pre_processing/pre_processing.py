@@ -177,8 +177,6 @@ class GaitPreProcessing:
         # Disegna i keypoints
         num_keypoints = len(keypoints) // 3
         for i in range(num_keypoints):
-            if i < 5:
-                continue
             x = int(keypoints[3 * i])
             y = int(keypoints[3 * i + 1])
             v = keypoints[3 * i + 2]  # visibilità
